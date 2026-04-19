@@ -1,0 +1,99 @@
+<div class="flex gap-2 group" [class.justify-end]="isMine()" [class.justify-start]="!isMine()">
+  <div class="max-w-[75%] relative" (contextmenu)="onRightClick($event)">
+    <div
+      class="px-3 py-2 rounded-2xl text-sm shadow-sm break-words"
+      [class.bg-primary]="isMine()"
+      [class.text-primary-content]="isMine()"
+      [class.rounded-br-sm]="isMine()"
+      [class.bg-base-200]="!isMine()"
+      [class.text-base-content]="!isMine()"
+      [class.rounded-bl-sm]="!isMine()"
+    >
+      {{ message().text }}
+    </div>
+
+    <div
+      class="flex items-center gap-1 mt-0.5"
+      [class.justify-end]="isMine()"
+      [class.justify-start]="!isMine()"
+    >
+      <span class="text-xs text-base-content/40">{{ message().timestamp | timeAgo }}</span>
+      @if (isMine()) {
+        <span class="text-xs text-base-content/50">
+          @if (message().status === 'read') {
+            <!-- Double blue check -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-3.5 w-3.5 text-info inline"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path
+                d="M18 7l-1.41-1.42-6.34 6.34 1.41 1.41L18 7zm4.24-1.42L11.66 16.17 7.48 12l-1.41 1.41L11.66 19l12-12-1.42-1.42zM.41 13.41L6 19l1.41-1.41L1.83 12 .41 13.41z"
+              />
+            </svg>
+          } @else if (message().status === 'delivered') {
+            <!-- Double grey check -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-3.5 w-3.5 inline"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path
+                d="M18 7l-1.41-1.42-6.34 6.34 1.41 1.41L18 7zm4.24-1.42L11.66 16.17 7.48 12l-1.41 1.41L11.66 19l12-12-1.42-1.42zM.41 13.41L6 19l1.41-1.41L1.83 12 .41 13.41z"
+              />
+            </svg>
+          } @else {
+            <!-- Single grey check -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-3.5 w-3.5 inline"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          }
+        </span>
+      }
+    </div>
+
+    <!-- Context menu (delete) -->
+    @if (menuOpen() && isMine()) {
+      <div
+        class="absolute z-10 card bg-base-100 shadow-lg border border-base-300 py-1 min-w-32"
+        [class.right-0]="isMine()"
+        [class.left-0]="!isMine()"
+        style="bottom: 100%; margin-bottom: 4px"
+      >
+        <button
+          class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-base-200 text-error w-full text-left"
+          (click)="onDelete()"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
+          </svg>
+          Delete
+        </button>
+      </div>
+    }
+  </div>
+</div>

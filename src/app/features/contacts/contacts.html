@@ -1,0 +1,229 @@
+<div class="flex flex-col flex-1 min-h-0">
+  <!-- Header -->
+  <div
+    class="flex h-16 items-center justify-between px-4 border-b border-primary/20 bg-primary text-primary-content shrink-0 shadow-sm"
+  >
+    <h1 class="text-lg font-semibold">Contacts</h1>
+    <button class="btn btn-secondary btn-sm gap-1 border-none" (click)="openAddModal()">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-4 w-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+      </svg>
+      Add
+    </button>
+  </div>
+
+  <!-- Search -->
+  <div class="px-4 py-2 border-b border-base-300 shrink-0 bg-base-100">
+    <label
+      class="input input-sm flex items-center gap-2 w-full border border-base-300 focus-within:border-primary focus-within:outline-none"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-4 w-4 opacity-50"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M21 21l-4.35-4.35M16.65 16.65A7.5 7.5 0 1 0 4.5 4.5a7.5 7.5 0 0 0 12.15 12.15z"
+        />
+      </svg>
+      <input
+        type="text"
+        class="grow"
+        placeholder="Search contacts…"
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)"
+      />
+    </label>
+  </div>
+
+  <!-- Contact list -->
+  <div class="flex-1 overflow-y-auto overflow-x-hidden">
+    @if (filtered().length === 0) {
+      <div
+        class="flex flex-col items-center justify-center gap-2 mt-16 text-base-content/40 text-sm"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-12 w-12"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.5"
+            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+          />
+        </svg>
+        <p>No contacts found.</p>
+      </div>
+    }
+    @for (contact of filtered(); track contact.id) {
+      <div
+        class="flex items-center gap-3 px-4 py-3 border-b border-base-200 hover:bg-base-200 transition-colors"
+        [class.opacity-50]="contact.blocked"
+      >
+        <app-avatar
+          [initials]="contact.avatarInitials"
+          [color]="contact.avatarColor"
+          [online]="!contact.blocked && presence.isOnline(contact.userId)"
+          [showPresence]="!contact.blocked"
+        />
+        <div class="flex-1 min-w-0">
+          <p class="font-medium truncate">{{ contact.displayName }}</p>
+          @if (contact.blocked) {
+            <p class="text-xs text-error">Blocked</p>
+          } @else {
+            <p class="text-xs text-base-content/50">
+              {{ presence.isOnline(contact.userId) ? 'Online' : 'Offline' }}
+            </p>
+          }
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-1 shrink-0">
+          @if (!contact.blocked) {
+            <button
+              class="btn btn-ghost btn-circle btn-sm text-primary tooltip tooltip-bottom"
+              data-tip="Open chat"
+              (click)="openChat(contact)"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
+              </svg>
+            </button>
+          }
+          <button
+            class="btn btn-ghost btn-circle btn-sm tooltip tooltip-bottom"
+            [attr.data-tip]="contact.blocked ? 'Unblock' : 'Block'"
+            [class.text-warning]="!contact.blocked"
+            [class.text-success]="contact.blocked"
+            (click)="toggleBlock(contact)"
+          >
+            @if (contact.blocked) {
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            } @else {
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                />
+              </svg>
+            }
+          </button>
+          <button
+            class="btn btn-ghost btn-circle btn-sm text-error tooltip tooltip-bottom"
+            data-tip="Remove"
+            (click)="removeContact(contact)"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Add Contact Modal -->
+@if (showAddModal()) {
+  <div class="modal modal-open">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg">Add Contact</h3>
+      <p class="text-sm text-base-content/70 mt-1">
+        Enter the username of the person you want to add.
+      </p>
+
+      @if (addError()) {
+        <div class="alert alert-error text-sm py-2 mt-3">{{ addError() }}</div>
+      }
+      @if (addSuccess()) {
+        <div class="alert alert-success text-sm py-2 mt-3">{{ addSuccess() }}</div>
+      }
+
+      <div class="mt-4">
+        <label class="form-control">
+          <div class="label"><span class="label-text">Username</span></div>
+          <input
+            type="text"
+            class="input border border-base-300 focus:border-primary focus:outline-none"
+            placeholder="e.g. alice"
+            [value]="addUsername()"
+            (input)="addUsername.set($any($event.target).value)"
+            (keydown.enter)="submitAdd()"
+          />
+        </label>
+      </div>
+
+      <div class="modal-action">
+        <button class="btn btn-ghost" (click)="closeAddModal()">Close</button>
+        <button class="btn btn-primary" (click)="submitAdd()">Add Contact</button>
+      </div>
+    </div>
+    <div
+      class="modal-backdrop"
+      tabindex="0"
+      role="button"
+      aria-label="Close add contact dialog"
+      (click)="closeAddModal()"
+      (keydown.enter)="closeAddModal()"
+      (keydown.space)="$event.preventDefault(); closeAddModal()"
+    ></div>
+  </div>
+}

@@ -1,0 +1,146 @@
+@if (conversation() && partner(); as p) {
+  <div class="flex flex-col h-full">
+    <!-- Header -->
+    <div
+      class="flex h-16 items-center gap-3 px-4 border-b border-primary/20 bg-primary text-primary-content shrink-0 shadow-sm"
+    >
+      <!-- Back button (mobile only) -->
+      <button
+        class="btn btn-ghost btn-circle btn-sm md:hidden text-primary-content hover:bg-primary-content/10"
+        (click)="goBack()"
+        aria-label="Back"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15 19l-7-7 7-7"
+          />
+        </svg>
+      </button>
+
+      <app-avatar
+        [initials]="partner()!.initials"
+        [color]="partner()!.color"
+        [online]="presence.isOnline(partner()!.userId)"
+        [showPresence]="true"
+        size="sm"
+      />
+
+      <div class="flex-1 min-w-0">
+        <p class="font-semibold truncate">{{ partner()!.displayName }}</p>
+        <p class="text-xs text-primary-content/70">
+          {{ presence.isOnline(partner()!.userId) ? 'Online' : 'Offline' }}
+        </p>
+      </div>
+
+      <!-- Delete conversation -->
+      <button
+        class="btn btn-ghost btn-circle btn-sm text-primary-content hover:bg-primary-content/10"
+        (click)="confirmDeleteConversation()"
+        aria-label="Delete conversation"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+          />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Message list -->
+    <div #messageList class="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
+      @if (messages().length === 0) {
+        <p class="text-center text-base-content/40 text-sm mt-10">No messages yet. Say hello!</p>
+      }
+      @for (msg of messages(); track msg.id) {
+        <app-message-bubble
+          [message]="msg"
+          [isMine]="isMine(msg.senderId)"
+          (deleteMessage)="deleteMessage($event)"
+        />
+      }
+    </div>
+
+    <!-- Input bar -->
+    <div class="shrink-0 border-t border-base-300 bg-base-100 px-4 py-3">
+      <div class="flex items-end gap-2">
+        <textarea
+          class="textarea flex-1 resize-none text-sm min-h-[42px] max-h-32 leading-snug border border-base-300 focus:border-primary focus:outline-none"
+          placeholder="Type a message…"
+          rows="1"
+          [value]="messageText()"
+          (input)="messageText.set($any($event.target).value)"
+          (keydown)="onKeyDown($event)"
+        ></textarea>
+        <button
+          class="btn btn-primary btn-circle shrink-0"
+          [disabled]="!messageText().trim()"
+          (click)="send()"
+          aria-label="Send message"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete conversation modal -->
+  @if (showDeleteModal()) {
+    <div class="modal modal-open">
+      <div class="modal-box">
+        <h3 class="font-bold text-lg">Delete conversation?</h3>
+        <p class="py-4 text-sm text-base-content/70">
+          This conversation will be removed from your list. The other party's messages will not be
+          affected.
+        </p>
+        <div class="modal-action">
+          <button class="btn btn-ghost" (click)="cancelDelete()">Cancel</button>
+          <button class="btn btn-error" (click)="doDeleteConversation()">Delete</button>
+        </div>
+      </div>
+      <div
+        class="modal-backdrop"
+        tabindex="0"
+        role="button"
+        aria-label="Close delete conversation dialog"
+        (click)="cancelDelete()"
+        (keydown.enter)="cancelDelete()"
+        (keydown.space)="$event.preventDefault(); cancelDelete()"
+      ></div>
+    </div>
+  }
+} @else {
+  <div class="flex flex-1 items-center justify-center text-base-content/40 text-sm p-10">
+    Conversation not found.
+  </div>
+}

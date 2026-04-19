@@ -1,0 +1,290 @@
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body gap-4">
+    <h2 class="card-title text-2xl justify-center">Create account</h2>
+
+    <!-- Mode toggle -->
+    <div role="tablist" class="tabs tabs-box">
+      <button
+        role="tab"
+        type="button"
+        class="tab gap-2"
+        [class.tab-active]="registrationMode() === 'password'"
+        (click)="switchMode('password')"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-4 w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+          />
+        </svg>
+        Password
+      </button>
+      <button
+        role="tab"
+        type="button"
+        class="tab gap-2"
+        [class.tab-active]="registrationMode() === 'passkey'"
+        (click)="switchMode('passkey')"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-4 w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+          />
+        </svg>
+        Passkey
+      </button>
+    </div>
+
+    @if (error()) {
+      <div class="alert alert-error text-sm py-2">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-5 w-5 shrink-0"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          />
+        </svg>
+        {{ error() }}
+      </div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
+      <!-- Common fields -->
+      <div class="flex flex-col gap-1">
+        <label class="label" for="username">Username</label>
+        <input
+          id="username"
+          type="text"
+          formControlName="username"
+          class="input w-full border border-base-300 focus:border-primary focus:outline-none"
+          placeholder="your_username"
+          [class.input-error]="form.get('username')?.invalid && form.get('username')?.touched"
+          autocomplete="username"
+        />
+        @if (form.get('username')?.errors?.['required'] && form.get('username')?.touched) {
+          <p class="label text-error text-xs">Username is required.</p>
+        } @else if (form.get('username')?.errors?.['minlength'] && form.get('username')?.touched) {
+          <p class="label text-error text-xs">Minimum 3 characters.</p>
+        } @else if (form.get('username')?.errors?.['pattern'] && form.get('username')?.touched) {
+          <p class="label text-error text-xs">Only letters, numbers and underscores.</p>
+        }
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label class="label" for="email">Email</label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          class="input w-full border border-base-300 focus:border-primary focus:outline-none"
+          placeholder="you@example.com"
+          [class.input-error]="form.get('email')?.invalid && form.get('email')?.touched"
+          autocomplete="email"
+        />
+        @if (form.get('email')?.errors?.['required'] && form.get('email')?.touched) {
+          <p class="label text-error text-xs">Email is required.</p>
+        } @else if (form.get('email')?.errors?.['email'] && form.get('email')?.touched) {
+          <p class="label text-error text-xs">Enter a valid email address.</p>
+        }
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label class="label" for="displayName">Display name</label>
+        <input
+          id="displayName"
+          type="text"
+          formControlName="displayName"
+          class="input w-full border border-base-300 focus:border-primary focus:outline-none"
+          placeholder="Jane Doe"
+          [class.input-error]="form.get('displayName')?.invalid && form.get('displayName')?.touched"
+          autocomplete="name"
+        />
+        @if (form.get('displayName')?.errors?.['required'] && form.get('displayName')?.touched) {
+          <p class="label text-error text-xs">Display name is required.</p>
+        }
+      </div>
+
+      <!-- Password fields (password mode only) -->
+      @if (registrationMode() === 'password') {
+        <div class="flex flex-col gap-1">
+          <label class="label" for="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            formControlName="password"
+            class="input w-full border border-base-300 focus:border-primary focus:outline-none"
+            placeholder="Min. 8 characters"
+            [class.input-error]="form.get('password')?.invalid && form.get('password')?.touched"
+            autocomplete="new-password"
+          />
+          @if (form.get('password')?.errors?.['required'] && form.get('password')?.touched) {
+            <p class="label text-error text-xs">Password is required.</p>
+          } @else if (form.get('password')?.errors?.['minlength'] && form.get('password')?.touched) {
+            <p class="label text-error text-xs">Minimum 8 characters.</p>
+          }
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label class="label" for="confirmPassword">Confirm password</label>
+          <input
+            id="confirmPassword"
+            type="password"
+            formControlName="confirmPassword"
+            class="input w-full border border-base-300 focus:border-primary focus:outline-none"
+            placeholder="••••••••"
+            [class.input-error]="
+              (form.errors?.['passwordsMismatch'] || form.get('confirmPassword')?.invalid) &&
+              form.get('confirmPassword')?.touched
+            "
+            autocomplete="new-password"
+          />
+          @if (form.get('confirmPassword')?.errors?.['required'] && form.get('confirmPassword')?.touched) {
+            <p class="label text-error text-xs">Please confirm your password.</p>
+          } @else if (form.errors?.['passwordsMismatch'] && form.get('confirmPassword')?.touched) {
+            <p class="label text-error text-xs">Passwords do not match.</p>
+          }
+        </div>
+      }
+
+      <!-- Passkey info (passkey mode only) -->
+      @if (registrationMode() === 'passkey') {
+        <div class="alert alert-info text-sm py-3">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5 shrink-0"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <span
+            >Your device will prompt you to verify with biometrics or a PIN to create a
+            passkey.</span
+          >
+        </div>
+      }
+
+      <button type="submit" class="btn btn-primary w-full" [disabled]="loading()">
+        @if (loading()) {
+          <span class="loading loading-spinner loading-sm"></span>
+        } @else if (registrationMode() === 'passkey') {
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+            />
+          </svg>
+        }
+        {{ registrationMode() === 'passkey' ? 'Register with Passkey' : 'Create account' }}
+      </button>
+    </form>
+
+    <p class="text-center text-sm">
+      Already have an account?
+      <a
+        routerLink="/auth/sign-in"
+        class="link link-primary inline-flex min-h-11 items-center rounded-lg px-2"
+        >Sign in</a
+      >
+    </p>
+  </div>
+</div>
+
+<!-- Passkey prompt modal -->
+@if (showPasskeyPrompt()) {
+  <div class="modal modal-open">
+    <div class="modal-box max-w-sm">
+      <h3 class="font-bold text-lg mb-1">Register passkey</h3>
+      <p class="text-sm text-base-content/70 mb-6">
+        Your device will ask you to verify your identity using biometrics or a PIN to create
+        your passkey.
+      </p>
+
+      <div class="flex flex-col items-center gap-4 py-4">
+        @if (passkeyLoading()) {
+          <span class="loading loading-ring loading-lg text-primary"></span>
+          <p class="text-sm text-base-content/60">Waiting for device confirmation…</p>
+        } @else {
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-16 w-16 text-primary"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+              d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+            />
+          </svg>
+          <p class="text-sm text-center text-base-content/70">
+            Tap <strong>Authenticate</strong> to verify with your device.
+          </p>
+        }
+      </div>
+
+      <div class="modal-action">
+        <button
+          type="button"
+          class="btn btn-ghost"
+          [disabled]="passkeyLoading()"
+          (click)="cancelPasskey()"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="passkeyLoading()"
+          (click)="confirmPasskey()"
+        >
+          @if (passkeyLoading()) {
+            <span class="loading loading-spinner loading-sm"></span>
+          }
+          Authenticate
+        </button>
+      </div>
+    </div>
+    <div class="modal-backdrop" (click)="cancelPasskey()"></div>
+  </div>
+}

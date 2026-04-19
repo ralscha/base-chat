@@ -1,0 +1,154 @@
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body gap-4">
+    <h2 class="card-title text-2xl justify-center">Sign in</h2>
+
+    @if (error()) {
+      <div class="alert alert-error text-sm py-2">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-5 w-5 shrink-0"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          />
+        </svg>
+        {{ error() }}
+      </div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
+      <div class="flex flex-col gap-1">
+        <label class="label" for="username">Username</label>
+        <input
+          id="username"
+          type="text"
+          formControlName="username"
+          class="input w-full border border-base-300 focus:border-primary focus:outline-none"
+          placeholder="your_username"
+          [class.input-error]="form.get('username')?.invalid && form.get('username')?.touched"
+          autocomplete="username"
+        />
+        @if (form.get('username')?.invalid && form.get('username')?.touched) {
+          <p class="label text-error text-xs">Username is required.</p>
+        }
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <div class="flex justify-between items-center">
+          <label class="label" for="password">Password</label>
+          <a
+            routerLink="/auth/forgot-password"
+            class="link link-primary inline-flex min-h-11 items-center rounded-lg px-2 text-sm"
+            >Forgot password?</a
+          >
+        </div>
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          class="input w-full border border-base-300 focus:border-primary focus:outline-none"
+          placeholder="••••••••"
+          [class.input-error]="form.get('password')?.invalid && form.get('password')?.touched"
+          autocomplete="current-password"
+        />
+        @if (form.get('password')?.invalid && form.get('password')?.touched) {
+          <p class="label text-error text-xs">Password is required.</p>
+        }
+      </div>
+
+      <button type="submit" class="btn btn-primary w-full" [disabled]="loading()">
+        @if (loading()) {
+          <span class="loading loading-spinner loading-sm"></span>
+        }
+        Sign in
+      </button>
+    </form>
+
+    <div class="divider text-xs">OR</div>
+
+    <button class="btn btn-outline w-full gap-2" (click)="openPasskeyModal()">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-5 w-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+        />
+      </svg>
+      Sign in with Passkey
+    </button>
+
+    <p class="text-center text-sm">
+      Don't have an account?
+      <a
+        routerLink="/auth/sign-up"
+        class="link link-primary inline-flex min-h-11 items-center rounded-lg px-2"
+        >Sign up</a
+      >
+    </p>
+  </div>
+</div>
+
+<!-- Passkey modal -->
+@if (showPasskeyModal()) {
+  <div class="modal modal-open">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg flex items-center gap-2">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-6 w-6 text-primary"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+          />
+        </svg>
+        Passkey Authentication
+      </h3>
+      <p class="py-4 text-sm text-base-content/70">
+        Your device will now prompt you for a passkey (fingerprint, face ID, or security key).
+        <br /><br />
+        <em>(Demo mode: pressing "Authenticate" will sign you in as the default demo user.)</em>
+      </p>
+      <div class="modal-action">
+        <button class="btn btn-ghost" (click)="cancelPasskey()">Cancel</button>
+        <button
+          class="btn btn-primary gap-2"
+          (click)="confirmPasskey()"
+          [disabled]="passkeyLoading()"
+        >
+          @if (passkeyLoading()) {
+            <span class="loading loading-spinner loading-sm"></span>
+          }
+          Authenticate
+        </button>
+      </div>
+    </div>
+    <div
+      class="modal-backdrop"
+      tabindex="0"
+      role="button"
+      aria-label="Close passkey authentication dialog"
+      (click)="cancelPasskey()"
+      (keydown.enter)="cancelPasskey()"
+      (keydown.space)="$event.preventDefault(); cancelPasskey()"
+    ></div>
+  </div>
+}
