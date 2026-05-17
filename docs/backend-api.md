@@ -140,6 +140,8 @@ interface MessageDto {
   timestamp: number;
   status: MessageStatus;
   deletedBySender: boolean;
+  imageUrl?: string | null;
+  reactions?: Record<string, string[]>;
 }
 
 interface SessionDto {
@@ -168,6 +170,7 @@ Request:
 ```ts
 interface SignUpRequest {
   username: string;
+  email: string;
   displayName: string;
   password: string;
 }
@@ -176,6 +179,7 @@ interface SignUpRequest {
 Validation rules:
 
 - `username`: `string`, required, min length 3, pattern `^[a-zA-Z0-9_]+$`
+- `email`: `string`, required, valid email format
 - `displayName`: `string`, required, min length 2
 - `password`: `string`, required, min length 8
 
@@ -798,12 +802,14 @@ Request:
 ```ts
 interface SendMessageRequest {
   text: string;
+  imageUrl?: string | null;
 }
 ```
 
 Validation rules:
 
-- `text`: `string`, required, trimmed, non-empty
+- `text`: `string`, required unless `imageUrl` is provided, trimmed
+- `imageUrl`: `string`, optional URL of a previously uploaded image (see `POST /api/v1/uploads/images`)
 
 Response `201 Created`:
 
@@ -821,6 +827,53 @@ Realtime side effects:
 
 - Publish `message.created` on `conversation:{conversationId}`.
 - Publish `conversation.upsert` on both personal user channels.
+
+### `POST /api/v1/uploads/images`
+
+Uploads an image and returns a URL that can be referenced in `SendMessageRequest.imageUrl`.
+
+Request: `multipart/form-data` with a single `file` field containing the image.
+
+Response `201 Created`:
+
+```ts
+interface ImageUploadResponse {
+  url: string;
+}
+
+ApiResponse<ImageUploadResponse>
+```
+
+Possible errors:
+
+- `400 UNSUPPORTED_MEDIA_TYPE` — file is not an image
+- `413 FILE_TOO_LARGE`
+
+### `POST /api/v1/messages/{messageId}/reactions`
+
+Toggles an emoji reaction for the current user on a message. If the reaction already exists for this user, it is removed; otherwise it is added.
+
+Path params:
+
+- `messageId`: `string`
+
+Request:
+
+```ts
+interface ToggleReactionRequest {
+  emoji: string;
+}
+```
+
+Response `200 OK`:
+
+```ts
+ApiResponse<MessageDto>
+```
+
+Realtime side effect:
+
+- Publish `message.reaction.updated` on `conversation:{conversationId}`.
 
 ### `DELETE /api/v1/messages/{messageId}`
 
@@ -1040,7 +1093,7 @@ Event payload envelope:
 
 ```ts
 interface ConversationChannelEvent<T> {
-  type: 'message.created' | 'message.deleted' | 'message.status.updated';
+  type: 'message.created' | 'message.deleted' | 'message.status.updated' | 'message.reaction.updated';
   emittedAt: number;
   data: T;
 }
@@ -1050,7 +1103,7 @@ interface ConversationChannelEvent<T> {
 
 ```ts
 interface MessageCreatedEventData {
-  message: MessageDto;
+  message: MessageDto; // includes imageUrl and reactions if present
 }
 ```
 
@@ -1088,6 +1141,22 @@ When to publish:
 
 - `sent -> delivered` when the server accepts the message and the recipient can receive it
 - `delivered -> read` when the recipient opens the conversation or the backend marks it read
+
+#### `message.reaction.updated`
+
+```ts
+interface MessageReactionUpdatedEventData {
+  messageId: string;
+  conversationId: string;
+  reactions: Record<string, string[]>;
+}
+```
+
+`reactions` is the full updated reactions map for the message (emoji → array of user IDs).
+
+When to publish:
+
+- After `POST /api/v1/messages/{messageId}/reactions` succeeds.
 
 ## Minimum Event Flow Per Feature
 
