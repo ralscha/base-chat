@@ -47,9 +47,12 @@
           />
         </svg>
         <input
+          #searchInput
           type="text"
           class="grow"
-          placeholder="Search conversations…"
+          placeholder="Search conversations… (Ctrl+K)"
+          aria-label="Search conversations"
+          aria-keyshortcuts="Control+K"
           [value]="searchQuery()"
           (input)="onSearch($event)"
         />

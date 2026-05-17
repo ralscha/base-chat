@@ -1,16 +1,34 @@
-import { Component, inject, computed, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  OnInit,
+  computed,
+  effect,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 import { filter } from 'rxjs/operators';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../core/services/auth.service';
 import { ChatService } from '../../core/services/chat.service';
 import { ContactsService } from '../../core/services/contacts.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { PresenceService } from '../../core/services/presence.service';
 import { AvatarComponent } from '../../shared/components/avatar/avatar';
 import { TimeAgoPipe } from '../../shared/pipes/time-ago.pipe';
-import { signal } from '@angular/core';
 
 @Component({
   selector: 'app-main-layout',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(document:keydown.control.k)': 'onCtrlK($event)',
+    '(document:keydown.meta.k)': 'onCtrlK($event)',
+  },
   imports: [RouterOutlet, RouterLink, RouterLinkActive, AvatarComponent, TimeAgoPipe],
   templateUrl: './main-layout.html',
 })
@@ -20,6 +38,11 @@ export class MainLayoutComponent implements OnInit {
   protected readonly contacts = inject(ContactsService);
   protected readonly presence = inject(PresenceService);
   readonly #router = inject(Router);
+  readonly #destroyRef = inject(DestroyRef);
+  readonly #titleService = inject(Title);
+  readonly #notifications = inject(NotificationService);
+
+  protected readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
 
   protected searchQuery = signal('');
   protected activeChatId = signal<string | null>(null);
@@ -36,11 +59,57 @@ export class MainLayoutComponent implements OnInit {
       const contact = this.contacts.getContactByUserId(otherId);
       const user = this.auth.getUserById(otherId);
       const name = contact?.displayName ?? user?.displayName ?? '';
-      return name.toLowerCase().includes(q);
+      if (name.toLowerCase().includes(q)) return true;
+      // Also search message text
+      return this.chat.getMessages(c.id).some((m) => m.text.toLowerCase().includes(q));
     });
   });
 
+  protected readonly totalUnread = computed(() => this.chat.totalUnread());
+
+  // Tracks which conv:unreadCount combos have been notified to avoid re-notifying
+  readonly #notifiedKeys = new Set<string>();
+
+  constructor() {
+    // Keep page title in sync with unread count (feature: unread badge in title)
+    effect(() => {
+      const count = this.totalUnread();
+      this.#titleService.setTitle(count > 0 ? `(${count}) BaseChat` : 'BaseChat');
+    });
+
+    // Browser notifications for new messages in non-active conversations
+    let isFirstRun = true;
+    effect(() => {
+      const convs = this.chat.conversations();
+      const activeId = this.activeChatId();
+      if (isFirstRun) {
+        isFirstRun = false;
+        // Seed the known keys so we don't notify for pre-existing unreads on load
+        convs.forEach((c) => this.#notifiedKeys.add(`${c.id}:${c.unreadCount}`));
+        return;
+      }
+      for (const c of convs) {
+        if (c.unreadCount === 0 || c.id === activeId) continue;
+        const key = `${c.id}:${c.unreadCount}`;
+        if (this.#notifiedKeys.has(key)) continue;
+        this.#notifiedKeys.add(key);
+        const otherId = this.chat.getOtherParticipantId(c);
+        const contact = this.contacts.getContactByUserId(otherId);
+        const user = this.auth.getUserById(otherId);
+        const name = contact?.displayName ?? user?.displayName ?? 'New message';
+        this.#notifications.show(name, { body: c.lastMessage, tag: c.id });
+      }
+    });
+  }
+
   ngOnInit(): void {
+    void this.#notifications.requestPermission();
+
+    // Restore search query from URL on load
+    const parsedUrl = this.#router.parseUrl(this.#router.url);
+    const q = parsedUrl.queryParams['q'] as string | undefined;
+    if (q) this.searchQuery.set(q);
+
     // Initialize presence for all known users
     const users = ['user_alice', 'user_bob', 'user_carol', 'user_david', 'user_eve'];
     this.presence.initialize(users);
@@ -48,8 +117,11 @@ export class MainLayoutComponent implements OnInit {
     // Track active route to control mobile sidebar visibility
     this.#updateActiveChat(this.#router.url);
     this.#router.events
-      .pipe(filter((e) => e instanceof NavigationEnd))
-      .subscribe((e: NavigationEnd) => this.#updateActiveChat(e.urlAfterRedirects));
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        takeUntilDestroyed(this.#destroyRef),
+      )
+      .subscribe((e) => this.#updateActiveChat(e.urlAfterRedirects));
   }
 
   #updateActiveChat(url: string): void {
@@ -74,12 +146,23 @@ export class MainLayoutComponent implements OnInit {
   }
 
   protected onSearch(event: Event): void {
-    this.searchQuery.set((event.target as HTMLInputElement).value);
+    const q = (event.target as HTMLInputElement).value;
+    this.searchQuery.set(q);
+    // Persist query in URL without pushing a new history entry
+    void this.#router.navigate([], {
+      queryParams: { q: q || null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  /** Ctrl+K / ⌘K — focus the conversation search input */
+  protected onCtrlK(event: Event): void {
+    event.preventDefault();
+    this.searchInput()?.nativeElement.focus();
   }
 
   protected signOut(): void {
     this.auth.signOut();
   }
-
-  protected totalUnread = computed(() => this.chat.totalUnread());
 }

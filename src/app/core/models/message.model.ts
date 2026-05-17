@@ -8,4 +8,6 @@ export interface Message {
   timestamp: number;
   status: MessageStatus;
   deletedBySender: boolean;
+  imageDataUrl?: string;
+  reactions?: Record<string, string[]>;
 }

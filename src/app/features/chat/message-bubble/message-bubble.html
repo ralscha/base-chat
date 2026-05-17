@@ -10,7 +10,40 @@
       [class.rounded-bl-sm]="!isMine()"
     >
       {{ message().text }}
+
+      @if (message().imageDataUrl) {
+        <img
+          [src]="message().imageDataUrl"
+          alt="Image attachment"
+          class="max-w-full rounded-lg mt-1 max-h-60 block"
+        />
+      }
     </div>
+
+    <!-- Reaction chips -->
+    @if (reactionEntries().length > 0) {
+      <div
+        class="flex flex-wrap gap-1 mt-1"
+        [class.justify-end]="isMine()"
+        [class.justify-start]="!isMine()"
+      >
+        @for (r of reactionEntries(); track r.emoji) {
+          <button
+            type="button"
+            class="flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full border transition-colors"
+            [class.bg-primary]="r.mine"
+            [class.text-primary-content]="r.mine"
+            [class.border-primary]="r.mine"
+            [class.bg-base-200]="!r.mine"
+            [class.border-base-300]="!r.mine"
+            (click)="react(r.emoji)"
+            [attr.aria-label]="r.emoji + ' ' + r.count + ' reactions'"
+          >
+            {{ r.emoji }}&thinsp;{{ r.count }}
+          </button>
+        }
+      </div>
+    }
 
     <div
       class="flex items-center gap-1 mt-0.5"
@@ -65,35 +98,49 @@
       }
     </div>
 
-    <!-- Context menu (delete) -->
-    @if (menuOpen() && isMine()) {
+    <!-- Context menu (reactions + delete) -->
+    @if (menuOpen()) {
       <div
-        class="absolute z-10 card bg-base-100 shadow-lg border border-base-300 py-1 min-w-32"
+        class="absolute z-10 bg-base-100 shadow-lg border border-base-300 rounded-xl overflow-hidden min-w-36"
         [class.right-0]="isMine()"
         [class.left-0]="!isMine()"
         style="bottom: 100%; margin-bottom: 4px"
       >
-        <button
-          class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-base-200 text-error w-full text-left"
-          (click)="onDelete()"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+        <!-- Quick reactions -->
+        <div class="flex items-center gap-0.5 px-2 py-1.5 border-b border-base-200">
+          @for (emoji of quickEmojis; track emoji) {
+            <button
+              type="button"
+              class="text-lg p-1 hover:bg-base-200 rounded transition-colors leading-none"
+              (click)="react(emoji)"
+            >{{ emoji }}</button>
+          }
+        </div>
+        <!-- Delete (own messages only) -->
+        @if (isMine()) {
+          <button
+            class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-base-200 text-error w-full text-left"
+            (click)="onDelete()"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            />
-          </svg>
-          Delete
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+            Delete
+          </button>
+        }
       </div>
     }
   </div>
 </div>
+

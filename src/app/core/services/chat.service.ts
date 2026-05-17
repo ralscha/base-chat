@@ -14,6 +14,8 @@ export class ChatService {
   readonly #auth = inject(AuthService);
   readonly #conversations = signal<Conversation[]>([]);
   readonly #messages = signal<Message[]>([]);
+  readonly #partnerTyping = signal<Record<string, boolean>>({});
+  readonly #typingTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   readonly conversations = computed(() => {
     const me = this.#auth.currentUser()?.id;
@@ -80,22 +82,24 @@ export class ChatService {
     return conv;
   }
 
-  sendMessage(conversationId: string, text: string): void {
+  sendMessage(conversationId: string, text: string, imageDataUrl?: string): void {
     const me = this.#auth.currentUser()!.id;
+    const trimmedText = text.trim();
     const msg: Message = {
       id: MockDataService.uid(),
       conversationId,
       senderId: me,
-      text: text.trim(),
+      text: trimmedText,
       timestamp: Date.now(),
       status: 'sent',
       deletedBySender: false,
+      ...(imageDataUrl ? { imageDataUrl } : {}),
     };
     this.#messages.update((msgs) => [...msgs, msg]);
     this.#saveMessages();
 
     this.#updateConversation(conversationId, {
-      lastMessage: msg.text,
+      lastMessage: trimmedText || '📷 Image',
       lastMessageAt: msg.timestamp,
       lastMessageSenderId: me,
     });
@@ -104,6 +108,8 @@ export class ChatService {
     setTimeout(() => this.#updateMessageStatus(msg.id, 'delivered'), 800);
     // Simulate read
     setTimeout(() => this.#updateMessageStatus(msg.id, 'read'), 3000);
+    // Simulate partner typing a response (visual demo)
+    setTimeout(() => this.setPartnerTyping(conversationId, true), 1500);
   }
 
   #updateMessageStatus(messageId: string, status: Message['status']): void {
@@ -147,6 +153,50 @@ export class ChatService {
   getOtherParticipantId(conversation: Conversation): string {
     const me = this.#auth.currentUser()!.id;
     return conversation.participantIds.find((id) => id !== me)!;
+  }
+
+  setPartnerTyping(conversationId: string, typing: boolean): void {
+    const existing = this.#typingTimers.get(conversationId);
+    if (existing) {
+      clearTimeout(existing);
+      this.#typingTimers.delete(conversationId);
+    }
+    this.#partnerTyping.update((s) => ({ ...s, [conversationId]: typing }));
+    if (typing) {
+      const t = setTimeout(() => {
+        this.#partnerTyping.update((s) => ({ ...s, [conversationId]: false }));
+        this.#typingTimers.delete(conversationId);
+      }, 3000);
+      this.#typingTimers.set(conversationId, t);
+    }
+  }
+
+  isPartnerTyping(conversationId: string): boolean {
+    return this.#partnerTyping()[conversationId] ?? false;
+  }
+
+  addReaction(messageId: string, emoji: string): void {
+    const me = this.#auth.currentUser()!.id;
+    this.#messages.update((msgs) =>
+      msgs.map((m) => {
+        if (m.id !== messageId) return m;
+        const reactions = { ...(m.reactions ?? {}) };
+        const users = reactions[emoji] ?? [];
+        if (users.includes(me)) {
+          // Toggle off
+          const updated = users.filter((id) => id !== me);
+          if (updated.length === 0) {
+            delete reactions[emoji];
+          } else {
+            reactions[emoji] = updated;
+          }
+        } else {
+          reactions[emoji] = [...users, me];
+        }
+        return { ...m, reactions };
+      }),
+    );
+    this.#saveMessages();
   }
 
   totalUnread(): number {

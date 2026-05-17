@@ -1,6 +1,5 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { ContactsService } from '../../core/services/contacts.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ChatService } from '../../core/services/chat.service';
@@ -11,7 +10,8 @@ import { Contact } from '../../core/models/contact.model';
 @Component({
   selector: 'app-contacts',
   host: { class: 'flex flex-col flex-1 min-h-0' },
-  imports: [FormsModule, AvatarComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [AvatarComponent],
   templateUrl: './contacts.html',
 })
 export class ContactsComponent {

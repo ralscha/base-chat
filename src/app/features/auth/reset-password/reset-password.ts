@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
   FormBuilder,
@@ -17,6 +17,7 @@ function passwordsMatch(control: AbstractControl): ValidationErrors | null {
 
 @Component({
   selector: 'app-reset-password',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './reset-password.html',
 })
@@ -47,19 +48,10 @@ export class ResetPasswordComponent {
     const { username, password } = this.form.getRawValue();
     setTimeout(() => {
       this.loading.set(false);
-      const user = this.#auth.findUserByUsername(username);
-      if (!user) {
-        this.error.set('No account found with that username.');
+      const result = this.#auth.resetPassword(username, password);
+      if (!result.success) {
+        this.error.set(result.error ?? 'No account found with that username.');
         return;
-      }
-      // Mock reset: directly update the password
-      const users = JSON.parse(localStorage.getItem('chat_users') ?? '[]');
-      const idx = users.findIndex(
-        (u: { username: string }) => u.username.toLowerCase() === username.toLowerCase(),
-      );
-      if (idx !== -1) {
-        users[idx].passwordHash = password;
-        localStorage.setItem('chat_users', JSON.stringify(users));
       }
       this.success.set(true);
     }, 600);

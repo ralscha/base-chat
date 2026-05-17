@@ -1,7 +1,8 @@
-import { Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
 @Component({
   selector: 'app-avatar',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './avatar.html',
 })
 export class AvatarComponent {
@@ -11,7 +12,7 @@ export class AvatarComponent {
   online = input<boolean>(false);
   showPresence = input<boolean>(false);
 
-  sizeClasses() {
+  protected sizeClasses = computed(() => {
     switch (this.size()) {
       case 'sm':
         return 'w-8 h-8 text-xs';
@@ -20,9 +21,9 @@ export class AvatarComponent {
       default:
         return 'w-10 h-10 text-sm';
     }
-  }
+  });
 
-  presenceDotSize() {
+  protected presenceDotSize = computed(() => {
     switch (this.size()) {
       case 'sm':
         return 'w-2 h-2';
@@ -31,5 +32,5 @@ export class AvatarComponent {
       default:
         return 'w-3 h-3';
     }
-  }
+  });
 }

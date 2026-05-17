@@ -142,7 +142,6 @@ export class AuthService {
     if (current.passwordHash !== currentPassword) {
       return { success: false, error: 'Current password is incorrect.' };
     }
-    this.updateProfile({ ...current, passwordHash: newPassword } as never);
     const users = this.#getUsers();
     const idx = users.findIndex((u) => u.id === current.id);
     if (idx !== -1) {
@@ -191,6 +190,17 @@ export class AuthService {
       return { success: false };
     }
     this.#startSession(user);
+    return { success: true };
+  }
+
+  resetPassword(username: string, newPassword: string): { success: boolean; error?: string } {
+    const users = this.#getUsers();
+    const idx = users.findIndex((u) => u.username.toLowerCase() === username.toLowerCase());
+    if (idx === -1) {
+      return { success: false, error: 'No account found with that username.' };
+    }
+    users[idx] = { ...users[idx], passwordHash: newPassword };
+    this.#saveUsers(users);
     return { success: true };
   }
 
