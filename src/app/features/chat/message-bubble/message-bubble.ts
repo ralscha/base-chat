@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { Message } from '../../../core/models/message.model';
 import { TimeAgoPipe } from '../../../shared/pipes/time-ago.pipe';
 import { ChatService } from '../../../core/services/chat.service';
@@ -25,7 +33,9 @@ export class MessageBubbleComponent {
 
   protected readonly reactionEntries = computed(() => {
     const r = this.message().reactions;
-    if (!r) return [];
+    if (!r) {
+      return [];
+    }
     const me = this.#auth.currentUser()?.id ?? '';
     return Object.entries(r)
       .filter(([, users]) => users.length > 0)
@@ -52,4 +62,3 @@ export class MessageBubbleComponent {
     this.deleteMessage.emit(this.message().id);
   }
 }
-

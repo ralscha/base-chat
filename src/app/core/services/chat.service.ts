@@ -179,7 +179,9 @@ export class ChatService {
     const me = this.#auth.currentUser()!.id;
     this.#messages.update((msgs) =>
       msgs.map((m) => {
-        if (m.id !== messageId) return m;
+        if (m.id !== messageId) {
+          return m;
+        }
         const reactions = { ...(m.reactions ?? {}) };
         const users = reactions[emoji] ?? [];
         if (users.includes(me)) {

@@ -167,7 +167,7 @@
             [class.text-primary]="showEmojiPicker()"
             (click)="toggleEmojiPicker()"
             aria-label="Insert emoji"
-            aria-expanded="showEmojiPicker()"
+            [attr.aria-expanded]="showEmojiPicker()"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

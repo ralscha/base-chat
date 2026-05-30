@@ -59,7 +59,9 @@ export class MainLayoutComponent implements OnInit {
       const contact = this.contacts.getContactByUserId(otherId);
       const user = this.auth.getUserById(otherId);
       const name = contact?.displayName ?? user?.displayName ?? '';
-      if (name.toLowerCase().includes(q)) return true;
+      if (name.toLowerCase().includes(q)) {
+        return true;
+      }
       // Also search message text
       return this.chat.getMessages(c.id).some((m) => m.text.toLowerCase().includes(q));
     });
@@ -89,9 +91,13 @@ export class MainLayoutComponent implements OnInit {
         return;
       }
       for (const c of convs) {
-        if (c.unreadCount === 0 || c.id === activeId) continue;
+        if (c.unreadCount === 0 || c.id === activeId) {
+          continue;
+        }
         const key = `${c.id}:${c.unreadCount}`;
-        if (this.#notifiedKeys.has(key)) continue;
+        if (this.#notifiedKeys.has(key)) {
+          continue;
+        }
         this.#notifiedKeys.add(key);
         const otherId = this.chat.getOtherParticipantId(c);
         const contact = this.contacts.getContactByUserId(otherId);
@@ -108,7 +114,9 @@ export class MainLayoutComponent implements OnInit {
     // Restore search query from URL on load
     const parsedUrl = this.#router.parseUrl(this.#router.url);
     const q = parsedUrl.queryParams['q'] as string | undefined;
-    if (q) this.searchQuery.set(q);
+    if (q) {
+      this.searchQuery.set(q);
+    }
 
     // Initialize presence for all known users
     const users = ['user_alice', 'user_bob', 'user_carol', 'user_david', 'user_eve'];

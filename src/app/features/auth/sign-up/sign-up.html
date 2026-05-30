@@ -143,7 +143,9 @@
           />
           @if (form.get('password')?.errors?.['required'] && form.get('password')?.touched) {
             <p class="label text-error text-xs">Password is required.</p>
-          } @else if (form.get('password')?.errors?.['minlength'] && form.get('password')?.touched) {
+          } @else if (
+            form.get('password')?.errors?.['minlength'] && form.get('password')?.touched
+          ) {
             <p class="label text-error text-xs">Minimum 8 characters.</p>
           }
         </div>
@@ -162,7 +164,10 @@
             "
             autocomplete="new-password"
           />
-          @if (form.get('confirmPassword')?.errors?.['required'] && form.get('confirmPassword')?.touched) {
+          @if (
+            form.get('confirmPassword')?.errors?.['required'] &&
+            form.get('confirmPassword')?.touched
+          ) {
             <p class="label text-error text-xs">Please confirm your password.</p>
           } @else if (form.errors?.['passwordsMismatch'] && form.get('confirmPassword')?.touched) {
             <p class="label text-error text-xs">Passwords do not match.</p>
@@ -234,8 +239,8 @@
     <div class="modal-box max-w-sm">
       <h3 class="font-bold text-lg mb-1">Register passkey</h3>
       <p class="text-sm text-base-content/70 mb-6">
-        Your device will ask you to verify your identity using biometrics or a PIN to create
-        your passkey.
+        Your device will ask you to verify your identity using biometrics or a PIN to create your
+        passkey.
       </p>
 
       <div class="flex flex-col items-center gap-4 py-4">
@@ -285,6 +290,13 @@
         </button>
       </div>
     </div>
-    <div class="modal-backdrop" (click)="cancelPasskey()"></div>
+    <div
+      class="modal-backdrop"
+      (click)="cancelPasskey()"
+      (keydown)="cancelPasskey()"
+      tabindex="0"
+      role="button"
+      aria-label="Cancel passkey"
+    ></div>
   </div>
 }

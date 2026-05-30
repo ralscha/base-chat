@@ -133,19 +133,25 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked {
 
   protected onFileSelect(event: Event): void {
     const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file || !file.type.startsWith('image/')) return;
+    if (!file || !file.type.startsWith('image/')) {
+      return;
+    }
     this.#readImageFile(file);
     (event.target as HTMLInputElement).value = '';
   }
 
   protected onPaste(event: ClipboardEvent): void {
     const items = event.clipboardData?.items;
-    if (!items) return;
+    if (!items) {
+      return;
+    }
     for (const item of Array.from(items)) {
       if (item.type.startsWith('image/')) {
         event.preventDefault();
         const file = item.getAsFile();
-        if (file) this.#readImageFile(file);
+        if (file) {
+          this.#readImageFile(file);
+        }
         break;
       }
     }

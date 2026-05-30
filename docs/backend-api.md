@@ -186,7 +186,7 @@ Validation rules:
 Response `201 Created`:
 
 ```ts
-ApiResponse<SessionDto>
+ApiResponse<SessionDto>;
 ```
 
 Possible errors:
@@ -210,7 +210,7 @@ interface PasswordSignInRequest {
 Response `200 OK`:
 
 ```ts
-ApiResponse<SessionDto>
+ApiResponse<SessionDto>;
 ```
 
 Possible errors:
@@ -233,7 +233,7 @@ interface RefreshRequest {
 Response `200 OK`:
 
 ```ts
-ApiResponse<SessionDto>
+ApiResponse<SessionDto>;
 ```
 
 Possible errors:
@@ -276,7 +276,7 @@ interface ForgotPasswordResponse {
   accepted: boolean;
 }
 
-ApiResponse<ForgotPasswordResponse>
+ApiResponse<ForgotPasswordResponse>;
 ```
 
 Notes:
@@ -307,7 +307,7 @@ interface ResetPasswordResponse {
   success: boolean;
 }
 
-ApiResponse<ResetPasswordResponse>
+ApiResponse<ResetPasswordResponse>;
 ```
 
 Possible errors:
@@ -352,7 +352,7 @@ interface PasskeyAuthenticationOptionsResponse {
   publicKey: PublicKeyCredentialRequestOptionsJson;
 }
 
-ApiResponse<PasskeyAuthenticationOptionsResponse>
+ApiResponse<PasskeyAuthenticationOptionsResponse>;
 ```
 
 ### `POST /api/v1/auth/passkeys/authentication/verify`
@@ -382,7 +382,7 @@ interface PasskeyAuthenticationVerifyRequest {
 Response `200 OK`:
 
 ```ts
-ApiResponse<SessionDto>
+ApiResponse<SessionDto>;
 ```
 
 Possible errors:
@@ -399,7 +399,7 @@ Returns the authenticated user profile.
 Response `200 OK`:
 
 ```ts
-ApiResponse<MeDto>
+ApiResponse<MeDto>;
 ```
 
 ### `PATCH /api/v1/me`
@@ -417,7 +417,7 @@ interface UpdateMeRequest {
 Response `200 OK`:
 
 ```ts
-ApiResponse<MeDto>
+ApiResponse<MeDto>;
 ```
 
 Backend behavior:
@@ -445,7 +445,7 @@ interface ChangePasswordResponse {
   success: boolean;
 }
 
-ApiResponse<ChangePasswordResponse>
+ApiResponse<ChangePasswordResponse>;
 ```
 
 Possible errors:
@@ -476,7 +476,7 @@ Returns all passkeys for the current user.
 Response `200 OK`:
 
 ```ts
-ApiResponse<PasskeyDto[]>
+ApiResponse<PasskeyDto[]>;
 ```
 
 ### `POST /api/v1/me/passkeys/registration/options`
@@ -528,7 +528,7 @@ interface PasskeyRegistrationOptionsResponse {
   publicKey: PublicKeyCredentialCreationOptionsJson;
 }
 
-ApiResponse<PasskeyRegistrationOptionsResponse>
+ApiResponse<PasskeyRegistrationOptionsResponse>;
 ```
 
 ### `POST /api/v1/me/passkeys/registration/verify`
@@ -558,7 +558,7 @@ interface PasskeyRegistrationVerifyRequest {
 Response `201 Created`:
 
 ```ts
-ApiResponse<PasskeyDto>
+ApiResponse<PasskeyDto>;
 ```
 
 Realtime side effect:
@@ -588,7 +588,7 @@ Returns all contacts for the signed-in user.
 Response `200 OK`:
 
 ```ts
-ApiResponse<ContactDto[]>
+ApiResponse<ContactDto[]>;
 ```
 
 Notes:
@@ -610,7 +610,7 @@ interface AddContactRequest {
 Response `201 Created`:
 
 ```ts
-ApiResponse<ContactDto>
+ApiResponse<ContactDto>;
 ```
 
 Possible errors:
@@ -642,7 +642,7 @@ interface UpdateContactRequest {
 Response `200 OK`:
 
 ```ts
-ApiResponse<ContactDto>
+ApiResponse<ContactDto>;
 ```
 
 Realtime side effect:
@@ -677,7 +677,7 @@ Query params:
 Response `200 OK`:
 
 ```ts
-ApiResponse<ConversationSummaryDto[]>
+ApiResponse<ConversationSummaryDto[]>;
 ```
 
 Notes:
@@ -702,7 +702,7 @@ interface GetOrCreateDirectConversationRequest {
 Response `200 OK` or `201 Created`:
 
 ```ts
-ApiResponse<ConversationSummaryDto>
+ApiResponse<ConversationSummaryDto>;
 ```
 
 Behavior:
@@ -755,7 +755,7 @@ interface MarkConversationReadResponse {
   readAt: number;
 }
 
-ApiResponse<MarkConversationReadResponse>
+ApiResponse<MarkConversationReadResponse>;
 ```
 
 Realtime side effects:
@@ -781,7 +781,7 @@ Query params:
 Response `200 OK`:
 
 ```ts
-ApiResponse<MessageDto[]>
+ApiResponse<MessageDto[]>;
 ```
 
 Rules:
@@ -814,7 +814,7 @@ Validation rules:
 Response `201 Created`:
 
 ```ts
-ApiResponse<MessageDto>
+ApiResponse<MessageDto>;
 ```
 
 Backend behavior:
@@ -841,7 +841,7 @@ interface ImageUploadResponse {
   url: string;
 }
 
-ApiResponse<ImageUploadResponse>
+ApiResponse<ImageUploadResponse>;
 ```
 
 Possible errors:
@@ -868,7 +868,7 @@ interface ToggleReactionRequest {
 Response `200 OK`:
 
 ```ts
-ApiResponse<MessageDto>
+ApiResponse<MessageDto>;
 ```
 
 Realtime side effect:
@@ -919,7 +919,7 @@ interface CentrifugoConnectionDto {
   subscriptions: CentrifugoSubscriptionDto[];
 }
 
-ApiResponse<CentrifugoConnectionDto>
+ApiResponse<CentrifugoConnectionDto>;
 ```
 
 Required baseline subscriptions:
@@ -1093,7 +1093,11 @@ Event payload envelope:
 
 ```ts
 interface ConversationChannelEvent<T> {
-  type: 'message.created' | 'message.deleted' | 'message.status.updated' | 'message.reaction.updated';
+  type:
+    | 'message.created'
+    | 'message.deleted'
+    | 'message.status.updated'
+    | 'message.reaction.updated';
   emittedAt: number;
   data: T;
 }

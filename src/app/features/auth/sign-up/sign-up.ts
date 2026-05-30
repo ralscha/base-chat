@@ -48,7 +48,9 @@ export class SignUpComponent {
   protected passkeyLoading = signal(false);
 
   protected switchMode(mode: 'password' | 'passkey'): void {
-    if (this.registrationMode() === mode) return;
+    if (this.registrationMode() === mode) {
+      return;
+    }
     this.registrationMode.set(mode);
     this.error.set('');
     const pwCtrl = this.form.get('password')!;
@@ -97,7 +99,9 @@ export class SignUpComponent {
   }
 
   #startPasskeyFlow(): void {
-    if (!this.#validateCommonFields()) return;
+    if (!this.#validateCommonFields()) {
+      return;
+    }
     this.showPasskeyPrompt.set(true);
   }
 
@@ -121,4 +125,3 @@ export class SignUpComponent {
     this.showPasskeyPrompt.set(false);
   }
 }
-
