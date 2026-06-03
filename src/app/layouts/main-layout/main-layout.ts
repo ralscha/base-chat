@@ -16,10 +16,11 @@ import { filter } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../core/services/auth.service';
 import { ChatService } from '../../core/services/chat.service';
-import { ContactsService } from '../../core/services/contacts.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { PresenceService } from '../../core/services/presence.service';
+import { ConversationPartnerService } from '../../core/services/conversation-partner.service';
 import { AvatarComponent } from '../../shared/components/avatar/avatar';
+import { IconComponent } from '../../shared/components/icon/icon';
 import { TimeAgoPipe } from '../../shared/pipes/time-ago.pipe';
 
 @Component({
@@ -29,14 +30,21 @@ import { TimeAgoPipe } from '../../shared/pipes/time-ago.pipe';
     '(document:keydown.control.k)': 'onCtrlK($event)',
     '(document:keydown.meta.k)': 'onCtrlK($event)',
   },
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, AvatarComponent, TimeAgoPipe],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    AvatarComponent,
+    IconComponent,
+    TimeAgoPipe,
+  ],
   templateUrl: './main-layout.html',
 })
 export class MainLayoutComponent implements OnInit {
   protected readonly auth = inject(AuthService);
   protected readonly chat = inject(ChatService);
-  protected readonly contacts = inject(ContactsService);
   protected readonly presence = inject(PresenceService);
+  protected readonly conversationPartners = inject(ConversationPartnerService);
   readonly #router = inject(Router);
   readonly #destroyRef = inject(DestroyRef);
   readonly #titleService = inject(Title);
@@ -55,10 +63,7 @@ export class MainLayoutComponent implements OnInit {
       return this.chat.conversations();
     }
     return this.chat.conversations().filter((c) => {
-      const otherId = this.chat.getOtherParticipantId(c);
-      const contact = this.contacts.getContactByUserId(otherId);
-      const user = this.auth.getUserById(otherId);
-      const name = contact?.displayName ?? user?.displayName ?? '';
+      const name = this.conversationPartners.fromConversation(c).displayName;
       if (name.toLowerCase().includes(q)) {
         return true;
       }
@@ -99,10 +104,7 @@ export class MainLayoutComponent implements OnInit {
           continue;
         }
         this.#notifiedKeys.add(key);
-        const otherId = this.chat.getOtherParticipantId(c);
-        const contact = this.contacts.getContactByUserId(otherId);
-        const user = this.auth.getUserById(otherId);
-        const name = contact?.displayName ?? user?.displayName ?? 'New message';
+        const name = this.conversationPartners.fromConversation(c).displayName;
         this.#notifications.show(name, { body: c.lastMessage, tag: c.id });
       }
     });
@@ -141,16 +143,7 @@ export class MainLayoutComponent implements OnInit {
   }
 
   protected getConversationPartner(convId: string) {
-    const conv = this.chat.getConversation(convId)!;
-    const otherId = this.chat.getOtherParticipantId(conv);
-    const contact = this.contacts.getContactByUserId(otherId);
-    const user = this.auth.getUserById(otherId);
-    return {
-      displayName: contact?.displayName ?? user?.displayName ?? 'Unknown',
-      initials: contact?.avatarInitials ?? user?.avatarInitials ?? '?',
-      color: contact?.avatarColor ?? user?.avatarColor ?? 'bg-primary',
-      userId: otherId,
-    };
+    return this.conversationPartners.fromConversationId(convId)!;
   }
 
   protected onSearch(event: Event): void {

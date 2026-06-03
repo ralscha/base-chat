@@ -10,20 +10,7 @@
     <div
       class="flex h-16 items-center gap-2 px-4 border-b border-primary/20 bg-primary text-primary-content shadow-sm"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        class="h-7 w-7 text-primary-content shrink-0"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-        />
-      </svg>
+      <app-icon name="chat" size="h-7 w-7 text-primary-content shrink-0" />
       <span class="text-xl font-bold text-primary-content flex-1">BaseChat</span>
     </div>
 
@@ -32,20 +19,7 @@
       <label
         class="input input-sm flex items-center gap-2 w-full border border-base-300 focus-within:border-primary focus-within:outline-none"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-4 w-4 opacity-50"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M21 21l-4.35-4.35M16.65 16.65A7.5 7.5 0 1 0 4.5 4.5a7.5 7.5 0 0 0 12.15 12.15z"
-          />
-        </svg>
+        <app-icon name="search" size="h-4 w-4 opacity-50" />
         <input
           #searchInput
           type="text"
@@ -104,20 +78,7 @@
         class="flex flex-col items-center gap-1 flex-1 py-3 text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors relative"
       >
         <div class="relative">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-            />
-          </svg>
+          <app-icon name="chat" />
           @if (totalUnread() > 0) {
             <span class="badge badge-primary badge-xs absolute -top-1 -right-1">{{
               totalUnread()
@@ -131,20 +92,7 @@
         routerLinkActive="bg-base-200 text-primary"
         class="flex flex-col items-center gap-1 flex-1 py-3 text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
-          />
-        </svg>
+        <app-icon name="users" />
         <span class="text-xs font-medium">Contacts</span>
       </a>
       <a
@@ -152,40 +100,14 @@
         routerLinkActive="bg-base-200 text-primary"
         class="flex flex-col items-center gap-1 flex-1 py-3 text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-          />
-        </svg>
+        <app-icon name="user" />
         <span class="text-xs font-medium">Profile</span>
       </a>
       <button
         class="flex flex-col items-center gap-1 flex-1 py-3 text-base-content/60 hover:bg-base-200 hover:text-error transition-colors bg-transparent border-none cursor-pointer"
         (click)="signOut()"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-          />
-        </svg>
+        <app-icon name="sign-out" />
         <span class="text-xs font-medium">Sign out</span>
       </button>
     </nav>
@@ -212,20 +134,7 @@
       class="flex flex-col items-center justify-center gap-1 flex-1 text-base-content/60 hover:bg-base-200 transition-colors"
     >
       <div class="relative">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-          />
-        </svg>
+        <app-icon name="chat" />
         @if (totalUnread() > 0) {
           <span class="badge badge-primary badge-xs absolute -top-1 -right-1">{{
             totalUnread()
@@ -239,20 +148,7 @@
       routerLinkActive="text-primary bg-base-200"
       class="flex flex-col items-center justify-center gap-1 flex-1 text-base-content/60 hover:bg-base-200 transition-colors"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        class="h-5 w-5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
-        />
-      </svg>
+      <app-icon name="users" />
       <span class="text-xs">Contacts</span>
     </a>
     <a
@@ -260,40 +156,14 @@
       routerLinkActive="text-primary bg-base-200"
       class="flex flex-col items-center justify-center gap-1 flex-1 text-base-content/60 hover:bg-base-200 transition-colors"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        class="h-5 w-5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-        />
-      </svg>
+      <app-icon name="user" />
       <span class="text-xs">Profile</span>
     </a>
     <button
       class="flex flex-col items-center justify-center gap-1 flex-1 text-base-content/60 hover:bg-base-200 hover:text-error bg-transparent border-none cursor-pointer transition-colors"
       (click)="signOut()"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        class="h-5 w-5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-        />
-      </svg>
+      <app-icon name="sign-out" />
       <span class="text-xs">Sign out</span>
     </button>
   </nav>

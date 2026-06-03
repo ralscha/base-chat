@@ -1,23 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import {
-  ReactiveFormsModule,
-  FormBuilder,
-  Validators,
-  AbstractControl,
-  ValidationErrors,
-} from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { AvatarComponent } from '../../shared/components/avatar/avatar';
 import { MockDataService } from '../../core/services/mock-data.service';
 import { Theme, ThemeService } from '../../core/services/theme.service';
-
-function passwordsMatch(control: AbstractControl): ValidationErrors | null {
-  const pw = control.get('newPassword')?.value;
-  const confirm = control.get('confirmPassword')?.value;
-  return pw && confirm && pw !== confirm ? { passwordsMismatch: true } : null;
-}
+import { passwordsMatch } from '../../shared/validators/passwords-match.validator';
 
 @Component({
   selector: 'app-profile',
@@ -88,7 +77,7 @@ export class ProfileComponent {
       newPassword: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', Validators.required],
     },
-    { validators: passwordsMatch },
+    { validators: passwordsMatch('newPassword', 'confirmPassword') },
   );
   protected pwError = signal('');
   protected pwSuccess = signal(false);

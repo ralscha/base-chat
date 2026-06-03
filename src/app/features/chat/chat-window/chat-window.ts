@@ -15,8 +15,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ChatService } from '../../../core/services/chat.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { ContactsService } from '../../../core/services/contacts.service';
 import { PresenceService } from '../../../core/services/presence.service';
+import { ConversationPartnerService } from '../../../core/services/conversation-partner.service';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 import { MessageBubbleComponent } from '../message-bubble/message-bubble';
 import { EmojiPickerComponent } from '../../../shared/components/emoji-picker/emoji-picker';
@@ -34,8 +34,8 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked {
   readonly #destroyRef = inject(DestroyRef);
   protected readonly chat = inject(ChatService);
   protected readonly auth = inject(AuthService);
-  protected readonly contacts = inject(ContactsService);
   protected readonly presence = inject(PresenceService);
+  protected readonly conversationPartners = inject(ConversationPartnerService);
 
   protected readonly messageListRef = viewChild<ElementRef<HTMLElement>>('messageList');
 
@@ -52,15 +52,7 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked {
     if (!conv) {
       return null;
     }
-    const otherId = this.chat.getOtherParticipantId(conv);
-    const contact = this.contacts.getContactByUserId(otherId);
-    const user = this.auth.getUserById(otherId);
-    return {
-      userId: otherId,
-      displayName: contact?.displayName ?? user?.displayName ?? 'Unknown',
-      initials: contact?.avatarInitials ?? user?.avatarInitials ?? '?',
-      color: contact?.avatarColor ?? user?.avatarColor ?? 'bg-primary',
-    };
+    return this.conversationPartners.fromConversation(conv);
   });
 
   protected messages = computed(() => this.chat.getMessages(this.conversationId()));

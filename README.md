@@ -4,14 +4,14 @@ BaseChat is the **frontend foundation** for a real-time chat application. It pro
 
 ## Tech Stack
 
-| Layer         | Technology                                       |
-| ------------- | ------------------------------------------------ |
-| Framework     | [Angular](https://angular.dev) 21                |
-| Styling       | [Tailwind CSS](https://tailwindcss.com) 4 + [daisyUI](https://daisyui.com) 5 |
-| Language      | TypeScript 5.9                                   |
-| Package Manager | [Bun](https://bun.sh)                           |
-| Linting       | ESLint + angular-eslint                          |
-| Formatting    | Prettier                                         |
+| Layer           | Technology                                                                   |
+| --------------- | ---------------------------------------------------------------------------- |
+| Framework       | [Angular](https://angular.dev) 21                                            |
+| Styling         | [Tailwind CSS](https://tailwindcss.com) 4 + [daisyUI](https://daisyui.com) 5 |
+| Language        | TypeScript 5.9                                                               |
+| Package Manager | [Bun](https://bun.sh)                                                        |
+| Linting         | ESLint + angular-eslint                                                      |
+| Formatting      | Prettier                                                                     |
 
 ## Features
 
@@ -56,5 +56,3 @@ src/app/
 ├── layouts/        # Auth layout & main layout (sidebar + content)
 └── shared/         # Reusable components, pipes
 ```
-
-

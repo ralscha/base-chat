@@ -1,19 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import {
-  FormBuilder,
-  ReactiveFormsModule,
-  Validators,
-  AbstractControl,
-  ValidationErrors,
-} from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
-
-function passwordsMatch(control: AbstractControl): ValidationErrors | null {
-  const pw = control.get('password')?.value;
-  const confirm = control.get('confirmPassword')?.value;
-  return pw && confirm && pw !== confirm ? { passwordsMismatch: true } : null;
-}
+import { passwordsMatch } from '../../../shared/validators/passwords-match.validator';
 
 @Component({
   selector: 'app-sign-up',
@@ -39,7 +28,7 @@ export class SignUpComponent {
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', Validators.required],
     },
-    { validators: passwordsMatch },
+    { validators: passwordsMatch('password', 'confirmPassword') },
   );
 
   protected error = signal('');
