@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Service, inject } from '@angular/core';
 import { StorageService } from './storage.service';
 import { User } from '../models/user.model';
 import { Contact } from '../models/contact.model';
@@ -34,7 +34,7 @@ function ts(daysAgo: number, hoursAgo = 0, minsAgo = 0): number {
   return Date.now() - daysAgo * 86_400_000 - hoursAgo * 3_600_000 - minsAgo * 60_000;
 }
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class MockDataService {
   readonly #storage = inject(StorageService);
 
@@ -454,3 +454,4 @@ export class MockDataService {
     return uid();
   }
 }
+

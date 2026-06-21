@@ -41,7 +41,7 @@
             <div class="alert alert-success text-sm py-2">Display name updated successfully.</div>
           }
 
-          <form class="flex flex-col gap-4" (ngSubmit)="saveName()">
+          <form class="flex flex-col gap-4" (submit)="$event.preventDefault(); saveName()">
             <div class="flex flex-col gap-1">
               <label class="label" for="displayName">Display name</label>
               <input
@@ -205,17 +205,17 @@
             <div class="alert alert-success text-sm py-2">Password changed successfully!</div>
           }
 
-          <form [formGroup]="pwForm" (ngSubmit)="changePassword()" class="flex flex-col gap-4">
+          <form [formRoot]="pwForm" (submit)="changePassword($event)" class="flex flex-col gap-4">
             <div class="flex flex-col gap-1">
               <label class="label" for="currentPassword">Current password</label>
               <input
                 id="currentPassword"
                 type="password"
-                formControlName="currentPassword"
+                [formField]="pwForm.currentPassword"
                 class="input w-full border border-base-300 focus:border-primary focus:outline-none"
                 placeholder="••••••••"
                 [class.input-error]="
-                  pwForm.get('currentPassword')?.invalid && pwForm.get('currentPassword')?.touched
+                  pwForm.currentPassword().invalid() && (pwForm.currentPassword().touched() || pwSubmitted())
                 "
                 autocomplete="current-password"
               />
@@ -225,17 +225,16 @@
               <input
                 id="newPassword"
                 type="password"
-                formControlName="newPassword"
+                [formField]="pwForm.newPassword"
                 class="input w-full border border-base-300 focus:border-primary focus:outline-none"
                 placeholder="Min. 8 characters"
                 [class.input-error]="
-                  pwForm.get('newPassword')?.invalid && pwForm.get('newPassword')?.touched
+                  pwForm.newPassword().invalid() && (pwForm.newPassword().touched() || pwSubmitted())
                 "
                 autocomplete="new-password"
               />
               @if (
-                pwForm.get('newPassword')?.errors?.['minlength'] &&
-                pwForm.get('newPassword')?.touched
+                pwForm.newPassword().errors()[0]?.kind === 'minLength' && (pwForm.newPassword().touched() || pwSubmitted())
               ) {
                 <p class="label text-error text-xs">Minimum 8 characters.</p>
               }
@@ -245,15 +244,15 @@
               <input
                 id="confirmPassword"
                 type="password"
-                formControlName="confirmPassword"
+                [formField]="pwForm.confirmPassword"
                 class="input w-full border border-base-300 focus:border-primary focus:outline-none"
                 placeholder="••••••••"
                 [class.input-error]="
-                  pwForm.errors?.['passwordsMismatch'] && pwForm.get('confirmPassword')?.touched
+                  pwMismatch() && (pwForm.confirmPassword().touched() || pwSubmitted())
                 "
                 autocomplete="new-password"
               />
-              @if (pwForm.errors?.['passwordsMismatch'] && pwForm.get('confirmPassword')?.touched) {
+              @if (pwMismatch() && (pwForm.confirmPassword().touched() || pwSubmitted())) {
                 <p class="label text-error text-xs">Passwords do not match.</p>
               }
             </div>
@@ -449,3 +448,6 @@
     ></div>
   </div>
 }
+
+
+

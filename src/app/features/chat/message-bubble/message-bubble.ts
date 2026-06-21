@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   computed,
   inject,
@@ -16,7 +15,6 @@ const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢'];
 
 @Component({
   selector: 'app-message-bubble',
-  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TimeAgoPipe],
   templateUrl: './message-bubble.html',
 })
@@ -62,3 +60,4 @@ export class MessageBubbleComponent {
     this.deleteMessage.emit(this.message().id);
   }
 }
+

@@ -1,4 +1,4 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
+import { Service, signal, computed, inject } from '@angular/core';
 import { StorageService } from './storage.service';
 import { AuthService } from './auth.service';
 import { Conversation } from '../models/conversation.model';
@@ -8,7 +8,7 @@ import { MockDataService } from './mock-data.service';
 const CONV_KEY = 'conversations';
 const MSG_KEY = 'messages';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class ChatService {
   readonly #storage = inject(StorageService);
   readonly #auth = inject(AuthService);
@@ -210,3 +210,4 @@ export class ChatService {
     this.#saveConversations();
   }
 }
+

@@ -1,7 +1,7 @@
-import { Injectable, OnDestroy, signal } from '@angular/core';
+import { Service, OnDestroy, signal } from '@angular/core';
 
 // Mock presence: randomly shuffles online status of known user IDs
-@Injectable({ providedIn: 'root' })
+@Service()
 export class PresenceService implements OnDestroy {
   readonly #status = signal<Record<string, boolean>>({});
   readonly status = this.#status.asReadonly();
@@ -44,3 +44,4 @@ export class PresenceService implements OnDestroy {
     }
   }
 }
+

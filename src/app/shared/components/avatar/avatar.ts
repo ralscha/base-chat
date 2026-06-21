@@ -1,8 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { Component, computed, input } from '@angular/core';
 
 @Component({
   selector: 'app-avatar',
-  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './avatar.html',
 })
 export class AvatarComponent {
@@ -34,3 +33,4 @@ export class AvatarComponent {
     }
   });
 }
+

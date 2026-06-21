@@ -1,4 +1,4 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
+import { Service, signal, computed, inject } from '@angular/core';
 import { StorageService } from './storage.service';
 import { AuthService } from './auth.service';
 import { Contact } from '../models/contact.model';
@@ -7,7 +7,7 @@ import { User } from '../models/user.model';
 
 const CONTACTS_KEY = 'contacts';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class ContactsService {
   readonly #storage = inject(StorageService);
   readonly #auth = inject(AuthService);
@@ -76,3 +76,4 @@ export class ContactsService {
     return this.#contacts().find((c) => c.ownerId === me && c.userId === userId);
   }
 }
+

@@ -1,6 +1,6 @@
-import { Injectable, signal } from '@angular/core';
+import { Service, signal } from '@angular/core';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class NotificationService {
   readonly supported = typeof Notification !== 'undefined';
 
@@ -25,3 +25,4 @@ export class NotificationService {
     new Notification(title, { icon: '/favicon.ico', ...options });
   }
 }
+

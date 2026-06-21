@@ -1,24 +1,21 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { Component, computed, inject, signal } from '@angular/core';
+import { FormField, FormRoot, form, minLength, required } from '@angular/forms/signals';
 import { DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { AvatarComponent } from '../../shared/components/avatar/avatar';
 import { MockDataService } from '../../core/services/mock-data.service';
 import { Theme, ThemeService } from '../../core/services/theme.service';
-import { passwordsMatch } from '../../shared/validators/passwords-match.validator';
 
 @Component({
   selector: 'app-profile',
   host: { class: 'flex flex-col flex-1 min-h-0' },
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, DatePipe, AvatarComponent],
+  imports: [FormField, FormRoot, DatePipe, AvatarComponent],
   templateUrl: './profile.html',
 })
 export class ProfileComponent {
   protected readonly auth = inject(AuthService);
   protected readonly themeService = inject(ThemeService);
-  readonly #fb = inject(FormBuilder);
   readonly #router = inject(Router);
 
   protected user = this.auth.currentUser;
@@ -71,28 +68,38 @@ export class ProfileComponent {
   }
 
   // ── Change password ────────────────────────────────────────────────────
-  protected pwForm = this.#fb.nonNullable.group(
-    {
-      currentPassword: ['', Validators.required],
-      newPassword: ['', [Validators.required, Validators.minLength(8)]],
-      confirmPassword: ['', Validators.required],
-    },
-    { validators: passwordsMatch('newPassword', 'confirmPassword') },
-  );
+  protected pwModel = signal({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  protected pwForm = form(this.pwModel, (path) => {
+    required(path.currentPassword, { message: 'Current password is required.' });
+    required(path.newPassword, { message: 'New password is required.' });
+    minLength(path.newPassword, 8, { message: 'Minimum 8 characters.' });
+    required(path.confirmPassword, { message: 'Please confirm your password.' });
+  });
+  protected pwMismatch = computed(() => {
+    const { newPassword, confirmPassword } = this.pwModel();
+    return !!newPassword && !!confirmPassword && newPassword !== confirmPassword;
+  });
+  protected pwSubmitted = signal(false);
   protected pwError = signal('');
   protected pwSuccess = signal(false);
 
-  protected changePassword(): void {
-    if (this.pwForm.invalid) {
-      this.pwForm.markAllAsTouched();
+  protected changePassword(event: Event): void {
+    event.preventDefault();
+    this.pwSubmitted.set(true);
+    if (this.pwForm().invalid() || this.pwMismatch()) {
       return;
     }
     this.pwError.set('');
-    const { currentPassword, newPassword } = this.pwForm.getRawValue();
+    const { currentPassword, newPassword } = this.pwModel();
     const result = this.auth.changePassword(currentPassword, newPassword);
     if (result.success) {
       this.pwSuccess.set(true);
-      this.pwForm.reset();
+      this.pwSubmitted.set(false);
+      this.pwModel.set({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } else {
       this.pwError.set(result.error ?? 'Error changing password.');
     }
@@ -147,3 +154,6 @@ export class ProfileComponent {
     this.showDeleteModal.set(false);
   }
 }
+
+
+

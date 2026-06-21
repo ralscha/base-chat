@@ -72,24 +72,24 @@
       </div>
     }
 
-    <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
+    <form [formRoot]="signUpForm" (submit)="submit($event)" class="flex flex-col gap-4">
       <!-- Common fields -->
       <div class="flex flex-col gap-1">
         <label class="label" for="username">Username</label>
         <input
           id="username"
           type="text"
-          formControlName="username"
+          [formField]="signUpForm.username"
           class="input w-full border border-base-300 focus:border-primary focus:outline-none"
           placeholder="your_username"
-          [class.input-error]="form.get('username')?.invalid && form.get('username')?.touched"
+          [class.input-error]="signUpForm.username().invalid() && (signUpForm.username().touched() || submitted())"
           autocomplete="username"
         />
-        @if (form.get('username')?.errors?.['required'] && form.get('username')?.touched) {
+        @if (signUpForm.username().errors()[0]?.kind === 'required' && (signUpForm.username().touched() || submitted())) {
           <p class="label text-error text-xs">Username is required.</p>
-        } @else if (form.get('username')?.errors?.['minlength'] && form.get('username')?.touched) {
+        } @else if (signUpForm.username().errors()[0]?.kind === 'minLength' && (signUpForm.username().touched() || submitted())) {
           <p class="label text-error text-xs">Minimum 3 characters.</p>
-        } @else if (form.get('username')?.errors?.['pattern'] && form.get('username')?.touched) {
+        } @else if (signUpForm.username().errors()[0]?.kind === 'pattern' && (signUpForm.username().touched() || submitted())) {
           <p class="label text-error text-xs">Only letters, numbers and underscores.</p>
         }
       </div>
@@ -99,15 +99,15 @@
         <input
           id="email"
           type="email"
-          formControlName="email"
+          [formField]="signUpForm.email"
           class="input w-full border border-base-300 focus:border-primary focus:outline-none"
           placeholder="you@example.com"
-          [class.input-error]="form.get('email')?.invalid && form.get('email')?.touched"
+          [class.input-error]="signUpForm.email().invalid() && (signUpForm.email().touched() || submitted())"
           autocomplete="email"
         />
-        @if (form.get('email')?.errors?.['required'] && form.get('email')?.touched) {
+        @if (signUpForm.email().errors()[0]?.kind === 'required' && (signUpForm.email().touched() || submitted())) {
           <p class="label text-error text-xs">Email is required.</p>
-        } @else if (form.get('email')?.errors?.['email'] && form.get('email')?.touched) {
+        } @else if (signUpForm.email().errors()[0]?.kind === 'email' && (signUpForm.email().touched() || submitted())) {
           <p class="label text-error text-xs">Enter a valid email address.</p>
         }
       </div>
@@ -117,13 +117,13 @@
         <input
           id="displayName"
           type="text"
-          formControlName="displayName"
+          [formField]="signUpForm.displayName"
           class="input w-full border border-base-300 focus:border-primary focus:outline-none"
           placeholder="Jane Doe"
-          [class.input-error]="form.get('displayName')?.invalid && form.get('displayName')?.touched"
+          [class.input-error]="signUpForm.displayName().invalid() && (signUpForm.displayName().touched() || submitted())"
           autocomplete="name"
         />
-        @if (form.get('displayName')?.errors?.['required'] && form.get('displayName')?.touched) {
+        @if (signUpForm.displayName().errors()[0]?.kind === 'required' && (signUpForm.displayName().touched() || submitted())) {
           <p class="label text-error text-xs">Display name is required.</p>
         }
       </div>
@@ -135,16 +135,16 @@
           <input
             id="password"
             type="password"
-            formControlName="password"
+            [formField]="signUpForm.password"
             class="input w-full border border-base-300 focus:border-primary focus:outline-none"
             placeholder="Min. 8 characters"
-            [class.input-error]="form.get('password')?.invalid && form.get('password')?.touched"
+            [class.input-error]="signUpForm.password().invalid() && (signUpForm.password().touched() || submitted())"
             autocomplete="new-password"
           />
-          @if (form.get('password')?.errors?.['required'] && form.get('password')?.touched) {
+          @if (signUpForm.password().errors()[0]?.kind === 'required' && (signUpForm.password().touched() || submitted())) {
             <p class="label text-error text-xs">Password is required.</p>
           } @else if (
-            form.get('password')?.errors?.['minlength'] && form.get('password')?.touched
+            signUpForm.password().errors()[0]?.kind === 'minLength' && (signUpForm.password().touched() || submitted())
           ) {
             <p class="label text-error text-xs">Minimum 8 characters.</p>
           }
@@ -155,21 +155,20 @@
           <input
             id="confirmPassword"
             type="password"
-            formControlName="confirmPassword"
+            [formField]="signUpForm.confirmPassword"
             class="input w-full border border-base-300 focus:border-primary focus:outline-none"
             placeholder="••••••••"
             [class.input-error]="
-              (form.errors?.['passwordsMismatch'] || form.get('confirmPassword')?.invalid) &&
-              form.get('confirmPassword')?.touched
+              (passwordsMismatch() || signUpForm.confirmPassword().invalid()) &&
+              (signUpForm.confirmPassword().touched() || submitted())
             "
             autocomplete="new-password"
           />
           @if (
-            form.get('confirmPassword')?.errors?.['required'] &&
-            form.get('confirmPassword')?.touched
+            signUpForm.confirmPassword().errors()[0]?.kind === 'required' && (signUpForm.confirmPassword().touched() || submitted())
           ) {
             <p class="label text-error text-xs">Please confirm your password.</p>
-          } @else if (form.errors?.['passwordsMismatch'] && form.get('confirmPassword')?.touched) {
+          } @else if (passwordsMismatch() && (signUpForm.confirmPassword().touched() || submitted())) {
             <p class="label text-error text-xs">Passwords do not match.</p>
           }
         </div>
@@ -300,3 +299,6 @@
     ></div>
   </div>
 }
+
+
+

@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Service, inject } from '@angular/core';
 import { Conversation } from '../models/conversation.model';
 import { AuthService } from './auth.service';
 import { ChatService } from './chat.service';
@@ -11,7 +11,7 @@ export interface ConversationPartner {
   color: string;
 }
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class ConversationPartnerService {
   readonly #auth = inject(AuthService);
   readonly #chat = inject(ChatService);
@@ -35,3 +35,4 @@ export class ConversationPartnerService {
     return conversation ? this.fromConversation(conversation) : null;
   }
 }
+

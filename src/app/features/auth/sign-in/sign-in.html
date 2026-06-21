@@ -22,19 +22,19 @@
       </div>
     }
 
-    <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-4">
+    <form [formRoot]="signInForm" (submit)="submit($event)" class="flex flex-col gap-4">
       <div class="flex flex-col gap-1">
         <label class="label" for="username">Username</label>
         <input
           id="username"
           type="text"
-          formControlName="username"
+          [formField]="signInForm.username"
           class="input w-full border border-base-300 focus:border-primary focus:outline-none"
           placeholder="your_username"
-          [class.input-error]="form.get('username')?.invalid && form.get('username')?.touched"
+          [class.input-error]="signInForm.username().invalid() && (signInForm.username().touched() || submitted())"
           autocomplete="username"
         />
-        @if (form.get('username')?.invalid && form.get('username')?.touched) {
+        @if (signInForm.username().invalid() && (signInForm.username().touched() || submitted())) {
           <p class="label text-error text-xs">Username is required.</p>
         }
       </div>
@@ -51,13 +51,13 @@
         <input
           id="password"
           type="password"
-          formControlName="password"
+          [formField]="signInForm.password"
           class="input w-full border border-base-300 focus:border-primary focus:outline-none"
           placeholder="••••••••"
-          [class.input-error]="form.get('password')?.invalid && form.get('password')?.touched"
+          [class.input-error]="signInForm.password().invalid() && (signInForm.password().touched() || submitted())"
           autocomplete="current-password"
         />
-        @if (form.get('password')?.invalid && form.get('password')?.touched) {
+        @if (signInForm.password().invalid() && (signInForm.password().touched() || submitted())) {
           <p class="label text-error text-xs">Password is required.</p>
         }
       </div>
@@ -152,3 +152,6 @@
     ></div>
   </div>
 }
+
+
+

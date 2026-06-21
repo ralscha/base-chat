@@ -1,10 +1,9 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { Component, input } from '@angular/core';
 
 export type IconName = 'chat' | 'search' | 'users' | 'user' | 'sign-out';
 
 @Component({
   selector: 'app-icon',
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -60,3 +59,4 @@ export class IconComponent {
   size = input('h-5 w-5');
   strokeWidth = input(2);
 }
+

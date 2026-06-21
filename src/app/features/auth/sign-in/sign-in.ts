@@ -1,37 +1,42 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormField, FormRoot, form, required } from '@angular/forms/signals';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-sign-in',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [FormField, FormRoot, RouterLink],
   templateUrl: './sign-in.html',
 })
 export class SignInComponent {
-  readonly #fb = inject(FormBuilder);
   readonly #auth = inject(AuthService);
   readonly #router = inject(Router);
 
-  protected form = this.#fb.nonNullable.group({
-    username: ['', Validators.required],
-    password: ['', Validators.required],
+  protected signInModel = signal({
+    username: '',
+    password: '',
   });
 
+  protected signInForm = form(this.signInModel, (path) => {
+    required(path.username, { message: 'Username is required.' });
+    required(path.password, { message: 'Password is required.' });
+  });
+
+  protected submitted = signal(false);
   protected error = signal('');
   protected loading = signal(false);
   protected showPasskeyModal = signal(false);
   protected passkeyLoading = signal(false);
 
-  protected submit(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
+  protected submit(event: Event): void {
+    event.preventDefault();
+    this.submitted.set(true);
+    if (this.signInForm().invalid()) {
       return;
     }
     this.loading.set(true);
     this.error.set('');
-    const { username, password } = this.form.getRawValue();
+    const { username, password } = this.signInModel();
     const result = this.#auth.signIn(username, password);
     this.loading.set(false);
     if (result.success) {
@@ -63,3 +68,5 @@ export class SignInComponent {
     this.showPasskeyModal.set(false);
   }
 }
+
+

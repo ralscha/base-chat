@@ -1,4 +1,4 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
+import { Service, signal, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { StorageService } from './storage.service';
 import { MockDataService } from './mock-data.service';
@@ -7,7 +7,7 @@ import { User, AuthSession } from '../models/user.model';
 const SESSION_KEY = 'session';
 const USERS_KEY = 'users';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class AuthService {
   readonly #storage = inject(StorageService);
   readonly #router = inject(Router);
@@ -222,3 +222,4 @@ export class AuthService {
     this.#currentUser.set(user);
   }
 }
+

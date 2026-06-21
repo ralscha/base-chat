@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   Component,
   DestroyRef,
   ElementRef,
@@ -25,7 +24,6 @@ import { TimeAgoPipe } from '../../shared/pipes/time-ago.pipe';
 
 @Component({
   selector: 'app-main-layout',
-  changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '(document:keydown.control.k)': 'onCtrlK($event)',
     '(document:keydown.meta.k)': 'onCtrlK($event)',
@@ -167,3 +165,4 @@ export class MainLayoutComponent implements OnInit {
     this.auth.signOut();
   }
 }
+

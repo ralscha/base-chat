@@ -5,14 +5,12 @@ import {
   signal,
   OnInit,
   AfterViewChecked,
-  ChangeDetectionStrategy,
   DestroyRef,
   viewChild,
   ElementRef,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormsModule } from '@angular/forms';
 import { ChatService } from '../../../core/services/chat.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { PresenceService } from '../../../core/services/presence.service';
@@ -24,8 +22,7 @@ import { EmojiPickerComponent } from '../../../shared/components/emoji-picker/em
 @Component({
   selector: 'app-chat-window',
   host: { class: 'flex flex-col flex-1 min-h-0' },
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, AvatarComponent, MessageBubbleComponent, EmojiPickerComponent],
+  imports: [AvatarComponent, MessageBubbleComponent, EmojiPickerComponent],
   templateUrl: './chat-window.html',
 })
 export class ChatWindowComponent implements OnInit, AfterViewChecked {
@@ -187,3 +184,4 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked {
     this.#router.navigate(['/conversations']);
   }
 }
+

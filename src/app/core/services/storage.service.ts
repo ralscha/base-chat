@@ -1,8 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 
 const PREFIX = 'chat_';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class StorageService {
   get<T>(key: string): T | null {
     const raw = localStorage.getItem(PREFIX + key);
@@ -30,3 +30,4 @@ export class StorageService {
       .forEach((k) => localStorage.removeItem(k));
   }
 }
+

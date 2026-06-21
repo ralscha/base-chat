@@ -1,34 +1,38 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormField, FormRoot, form, required } from '@angular/forms/signals';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-forgot-password',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [FormField, FormRoot, RouterLink],
   templateUrl: './forgot-password.html',
 })
 export class ForgotPasswordComponent {
-  readonly #fb = inject(FormBuilder);
   readonly #auth = inject(AuthService);
 
-  protected form = this.#fb.nonNullable.group({
-    username: ['', Validators.required],
+  protected forgotPasswordModel = signal({
+    username: '',
   });
 
+  protected forgotPasswordForm = form(this.forgotPasswordModel, (path) => {
+    required(path.username, { message: 'Username is required.' });
+  });
+
+  protected attempted = signal(false);
   protected submitted = signal(false);
   protected error = signal('');
   protected loading = signal(false);
 
-  protected submit(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
+  protected submit(event: Event): void {
+    event.preventDefault();
+    this.attempted.set(true);
+    if (this.forgotPasswordForm().invalid()) {
       return;
     }
     this.loading.set(true);
     this.error.set('');
-    const { username } = this.form.getRawValue();
+    const { username } = this.forgotPasswordModel();
     // Mock: verify the username exists
     setTimeout(() => {
       this.loading.set(false);
@@ -41,3 +45,5 @@ export class ForgotPasswordComponent {
     }, 600);
   }
 }
+
+

@@ -1,35 +1,57 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { email, FormField, FormRoot, form, minLength, pattern, required } from '@angular/forms/signals';
 import { AuthService } from '../../../core/services/auth.service';
-import { passwordsMatch } from '../../../shared/validators/passwords-match.validator';
 
 @Component({
   selector: 'app-sign-up',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [FormField, FormRoot, RouterLink],
   templateUrl: './sign-up.html',
 })
 export class SignUpComponent {
-  readonly #fb = inject(FormBuilder);
   readonly #auth = inject(AuthService);
   readonly #router = inject(Router);
 
   protected registrationMode = signal<'password' | 'passkey'>('password');
+  protected submitted = signal(false);
 
-  protected form = this.#fb.nonNullable.group(
-    {
-      username: [
-        '',
-        [Validators.required, Validators.minLength(3), Validators.pattern(/^[a-zA-Z0-9_]+$/)],
-      ],
-      email: ['', [Validators.required, Validators.email]],
-      displayName: ['', [Validators.required, Validators.minLength(2)]],
-      password: ['', [Validators.required, Validators.minLength(8)]],
-      confirmPassword: ['', Validators.required],
-    },
-    { validators: passwordsMatch('password', 'confirmPassword') },
-  );
+  protected signUpModel = signal({
+    username: '',
+    email: '',
+    displayName: '',
+    password: '',
+    confirmPassword: '',
+  });
+
+  protected signUpForm = form(this.signUpModel, (path) => {
+    required(path.username, { message: 'Username is required.' });
+    minLength(path.username, 3, { message: 'Minimum 3 characters.' });
+    pattern(path.username, /^[a-zA-Z0-9_]+$/, { message: 'Only letters, numbers and underscores.' });
+    required(path.email, { message: 'Email is required.' });
+    email(path.email, { message: 'Enter a valid email address.' });
+    required(path.displayName, { message: 'Display name is required.' });
+    minLength(path.displayName, 2, { message: 'Minimum 2 characters.' });
+    required(path.password, {
+      message: 'Password is required.',
+      when: () => this.registrationMode() === 'password',
+    });
+    minLength(path.password, 8, {
+      message: 'Minimum 8 characters.',
+      when: () => this.registrationMode() === 'password',
+    });
+    required(path.confirmPassword, {
+      message: 'Please confirm your password.',
+      when: () => this.registrationMode() === 'password',
+    });
+  });
+
+  protected passwordsMismatch = computed(() => {
+    if (this.registrationMode() !== 'password') {
+      return false;
+    }
+    const { password, confirmPassword } = this.signUpModel();
+    return !!password && !!confirmPassword && password !== confirmPassword;
+  });
 
   protected error = signal('');
   protected loading = signal(false);
@@ -41,23 +63,16 @@ export class SignUpComponent {
       return;
     }
     this.registrationMode.set(mode);
+    this.submitted.set(false);
     this.error.set('');
-    const pwCtrl = this.form.get('password')!;
-    const cfCtrl = this.form.get('confirmPassword')!;
     if (mode === 'passkey') {
-      pwCtrl.clearValidators();
-      cfCtrl.clearValidators();
-      pwCtrl.setValue('');
-      cfCtrl.setValue('');
-    } else {
-      pwCtrl.setValidators([Validators.required, Validators.minLength(8)]);
-      cfCtrl.setValidators(Validators.required);
+      this.signUpModel.update((model) => ({ ...model, password: '', confirmPassword: '' }));
     }
-    pwCtrl.updateValueAndValidity();
-    cfCtrl.updateValueAndValidity();
   }
 
-  protected submit(): void {
+  protected submit(event: Event): void {
+    event.preventDefault();
+    this.submitted.set(true);
     if (this.registrationMode() === 'password') {
       this.#submitPassword();
     } else {
@@ -65,19 +80,21 @@ export class SignUpComponent {
     }
   }
 
-  #validateCommonFields(): boolean {
-    ['username', 'email', 'displayName'].forEach((f) => this.form.get(f)?.markAsTouched());
-    return ['username', 'email', 'displayName'].every((f) => this.form.get(f)?.valid);
+  #commonFieldsValid(): boolean {
+    return (
+      this.signUpForm.username().valid() &&
+      this.signUpForm.email().valid() &&
+      this.signUpForm.displayName().valid()
+    );
   }
 
   #submitPassword(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
+    if (this.signUpForm().invalid() || this.passwordsMismatch()) {
       return;
     }
     this.loading.set(true);
     this.error.set('');
-    const { username, email, displayName, password } = this.form.getRawValue();
+    const { username, email, displayName, password } = this.signUpModel();
     const result = this.#auth.signUp(username, displayName, password, email);
     this.loading.set(false);
     if (result.success) {
@@ -88,7 +105,7 @@ export class SignUpComponent {
   }
 
   #startPasskeyFlow(): void {
-    if (!this.#validateCommonFields()) {
+    if (!this.#commonFieldsValid()) {
       return;
     }
     this.showPasskeyPrompt.set(true);
@@ -97,7 +114,7 @@ export class SignUpComponent {
   protected confirmPasskey(): void {
     this.passkeyLoading.set(true);
     this.error.set('');
-    const { username, email, displayName } = this.form.getRawValue();
+    const { username, email, displayName } = this.signUpModel();
     setTimeout(() => {
       const result = this.#auth.signUpWithPasskey(username, displayName, email);
       this.passkeyLoading.set(false);
@@ -114,3 +131,5 @@ export class SignUpComponent {
     this.showPasskeyPrompt.set(false);
   }
 }
+
+
