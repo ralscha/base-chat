@@ -30,4 +30,3 @@ export class StorageService {
       .forEach((k) => localStorage.removeItem(k));
   }
 }
-

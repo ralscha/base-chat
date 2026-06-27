@@ -54,5 +54,3 @@ export class ResetPasswordComponent {
     }, 600);
   }
 }
-
-

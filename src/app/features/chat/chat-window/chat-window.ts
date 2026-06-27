@@ -99,6 +99,10 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked {
     }
   }
 
+  protected updateMessageText(event: Event): void {
+    this.messageText.set((event.target as HTMLTextAreaElement).value);
+  }
+
   // ── Emoji picker ────────────────────────────────────────────────────────
 
   protected toggleEmojiPicker(): void {
@@ -184,4 +188,3 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked {
     this.#router.navigate(['/conversations']);
   }
 }
-

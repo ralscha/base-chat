@@ -49,7 +49,7 @@
                 type="text"
                 class="input w-full border border-base-300 focus:border-primary focus:outline-none"
                 [value]="nameValue()"
-                (input)="updateNameValue($any($event.target).value)"
+                (input)="updateNameFromInput($event)"
                 (keydown.escape)="resetName()"
                 placeholder="How your name appears"
                 autocomplete="name"
@@ -215,7 +215,8 @@
                 class="input w-full border border-base-300 focus:border-primary focus:outline-none"
                 placeholder="••••••••"
                 [class.input-error]="
-                  pwForm.currentPassword().invalid() && (pwForm.currentPassword().touched() || pwSubmitted())
+                  pwForm.currentPassword().invalid() &&
+                  (pwForm.currentPassword().touched() || pwSubmitted())
                 "
                 autocomplete="current-password"
               />
@@ -229,12 +230,14 @@
                 class="input w-full border border-base-300 focus:border-primary focus:outline-none"
                 placeholder="Min. 8 characters"
                 [class.input-error]="
-                  pwForm.newPassword().invalid() && (pwForm.newPassword().touched() || pwSubmitted())
+                  pwForm.newPassword().invalid() &&
+                  (pwForm.newPassword().touched() || pwSubmitted())
                 "
                 autocomplete="new-password"
               />
               @if (
-                pwForm.newPassword().errors()[0]?.kind === 'minLength' && (pwForm.newPassword().touched() || pwSubmitted())
+                pwForm.newPassword().errors()[0]?.kind === 'minLength' &&
+                (pwForm.newPassword().touched() || pwSubmitted())
               ) {
                 <p class="label text-error text-xs">Minimum 8 characters.</p>
               }
@@ -392,7 +395,7 @@
             type="text"
             class="input border border-base-300 focus:border-primary focus:outline-none"
             [value]="passkeyName()"
-            (input)="passkeyName.set($any($event.target).value)"
+            (input)="updatePasskeyName($event)"
             placeholder="e.g. My Phone"
           />
         </label>
@@ -448,6 +451,3 @@
     ></div>
   </div>
 }
-
-
-

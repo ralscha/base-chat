@@ -1,6 +1,14 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { email, FormField, FormRoot, form, minLength, pattern, required } from '@angular/forms/signals';
+import {
+  email,
+  FormField,
+  FormRoot,
+  form,
+  minLength,
+  pattern,
+  required,
+} from '@angular/forms/signals';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -26,7 +34,9 @@ export class SignUpComponent {
   protected signUpForm = form(this.signUpModel, (path) => {
     required(path.username, { message: 'Username is required.' });
     minLength(path.username, 3, { message: 'Minimum 3 characters.' });
-    pattern(path.username, /^[a-zA-Z0-9_]+$/, { message: 'Only letters, numbers and underscores.' });
+    pattern(path.username, /^[a-zA-Z0-9_]+$/, {
+      message: 'Only letters, numbers and underscores.',
+    });
     required(path.email, { message: 'Email is required.' });
     email(path.email, { message: 'Enter a valid email address.' });
     required(path.displayName, { message: 'Display name is required.' });
@@ -131,5 +141,3 @@ export class SignUpComponent {
     this.showPasskeyPrompt.set(false);
   }
 }
-
-

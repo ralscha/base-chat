@@ -1,11 +1,4 @@
-import {
-  Component,
-  computed,
-  inject,
-  input,
-  output,
-  signal,
-} from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { Message } from '../../../core/models/message.model';
 import { TimeAgoPipe } from '../../../shared/pipes/time-ago.pipe';
 import { ChatService } from '../../../core/services/chat.service';
@@ -60,4 +53,3 @@ export class MessageBubbleComponent {
     this.deleteMessage.emit(this.message().id);
   }
 }
-

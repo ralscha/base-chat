@@ -31,7 +31,9 @@
           [formField]="signInForm.username"
           class="input w-full border border-base-300 focus:border-primary focus:outline-none"
           placeholder="your_username"
-          [class.input-error]="signInForm.username().invalid() && (signInForm.username().touched() || submitted())"
+          [class.input-error]="
+            signInForm.username().invalid() && (signInForm.username().touched() || submitted())
+          "
           autocomplete="username"
         />
         @if (signInForm.username().invalid() && (signInForm.username().touched() || submitted())) {
@@ -54,7 +56,9 @@
           [formField]="signInForm.password"
           class="input w-full border border-base-300 focus:border-primary focus:outline-none"
           placeholder="••••••••"
-          [class.input-error]="signInForm.password().invalid() && (signInForm.password().touched() || submitted())"
+          [class.input-error]="
+            signInForm.password().invalid() && (signInForm.password().touched() || submitted())
+          "
           autocomplete="current-password"
         />
         @if (signInForm.password().invalid() && (signInForm.password().touched() || submitted())) {
@@ -152,6 +156,3 @@
     ></div>
   </div>
 }
-
-
-

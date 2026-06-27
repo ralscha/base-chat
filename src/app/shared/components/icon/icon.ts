@@ -59,4 +59,3 @@ export class IconComponent {
   size = input('h-5 w-5');
   strokeWidth = input(2);
 }
-

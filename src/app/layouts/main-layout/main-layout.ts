@@ -165,4 +165,3 @@ export class MainLayoutComponent implements OnInit {
     this.auth.signOut();
   }
 }
-

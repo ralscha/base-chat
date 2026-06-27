@@ -34,6 +34,14 @@ export class ContactsComponent {
     return this.contacts.myContacts().filter((c) => c.displayName.toLowerCase().includes(q));
   });
 
+  protected updateSearchQuery(event: Event): void {
+    this.searchQuery.set((event.target as HTMLInputElement).value);
+  }
+
+  protected updateAddUsername(event: Event): void {
+    this.addUsername.set((event.target as HTMLInputElement).value);
+  }
+
   protected openChat(contact: Contact): void {
     const conv = this.chat.getOrCreateConversation(contact.userId);
     this.#router.navigate(['/conversations', conv.id]);
@@ -80,4 +88,3 @@ export class ContactsComponent {
     }
   }
 }
-

@@ -76,4 +76,3 @@ export class ContactsService {
     return this.#contacts().find((c) => c.ownerId === me && c.userId === userId);
   }
 }
-

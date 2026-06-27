@@ -25,4 +25,3 @@ export class NotificationService {
     new Notification(title, { icon: '/favicon.ico', ...options });
   }
 }
-

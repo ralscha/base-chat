@@ -196,7 +196,7 @@
           placeholder="Type a message…"
           rows="1"
           [value]="messageText()"
-          (input)="messageText.set($any($event.target).value)"
+          (input)="updateMessageText($event)"
           (keydown)="onKeyDown($event)"
           (paste)="onPaste($event)"
         ></textarea>

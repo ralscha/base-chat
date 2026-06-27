@@ -6,4 +6,3 @@ import { Component } from '@angular/core';
   templateUrl: './chat-empty.html',
 })
 export class ChatEmptyComponent {}
-

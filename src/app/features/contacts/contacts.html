@@ -42,7 +42,7 @@
         class="grow"
         placeholder="Search contacts…"
         [value]="searchQuery()"
-        (input)="searchQuery.set($any($event.target).value)"
+        (input)="updateSearchQuery($event)"
       />
     </label>
   </div>
@@ -205,7 +205,7 @@
             class="input border border-base-300 focus:border-primary focus:outline-none"
             placeholder="e.g. alice"
             [value]="addUsername()"
-            (input)="addUsername.set($any($event.target).value)"
+            (input)="updateAddUsername($event)"
             (keydown.enter)="submitAdd()"
           />
         </label>

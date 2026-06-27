@@ -45,5 +45,3 @@ export class ForgotPasswordComponent {
     }, 600);
   }
 }
-
-

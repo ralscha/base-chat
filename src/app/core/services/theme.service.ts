@@ -33,4 +33,3 @@ export class ThemeService {
     document.documentElement.setAttribute('data-theme', theme);
   }
 }
-

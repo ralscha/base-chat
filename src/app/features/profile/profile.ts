@@ -37,6 +37,10 @@ export class ProfileComponent {
     this.nameError.set('');
   }
 
+  protected updateNameFromInput(event: Event): void {
+    this.updateNameValue((event.target as HTMLInputElement).value);
+  }
+
   protected saveName(): void {
     const name = this.nameValue().trim();
     if (!name) {
@@ -121,6 +125,10 @@ export class ProfileComponent {
     this.showPasskeyModal.set(false);
   }
 
+  protected updatePasskeyName(event: Event): void {
+    this.passkeyName.set((event.target as HTMLInputElement).value);
+  }
+
   protected confirmAddPasskey(): void {
     if (!this.passkeyName().trim()) {
       this.passkeyError.set('Please enter a name for this passkey.');
@@ -154,6 +162,3 @@ export class ProfileComponent {
     this.showDeleteModal.set(false);
   }
 }
-
-
-

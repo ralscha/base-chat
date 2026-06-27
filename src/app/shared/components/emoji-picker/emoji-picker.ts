@@ -57,4 +57,3 @@ export class EmojiPickerComponent {
   pick = output<string>();
   protected readonly emojis = COMMON_EMOJIS;
 }
-

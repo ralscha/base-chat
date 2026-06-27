@@ -44,4 +44,3 @@ export class PresenceService implements OnDestroy {
     }
   }
 }
-

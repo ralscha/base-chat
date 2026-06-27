@@ -35,4 +35,3 @@ export class ConversationPartnerService {
     return conversation ? this.fromConversation(conversation) : null;
   }
 }
-
