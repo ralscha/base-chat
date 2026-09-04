@@ -7,6 +7,11 @@ import { User, AuthSession } from '../models/user.model';
 const SESSION_KEY = 'session';
 const USERS_KEY = 'users';
 
+interface AuthResult {
+  success: boolean;
+  error?: string;
+}
+
 @Service()
 export class AuthService {
   readonly #storage = inject(StorageService);
@@ -21,12 +26,15 @@ export class AuthService {
 
   #restoreSession(): void {
     const session = this.#storage.get<AuthSession>(SESSION_KEY);
-    if (!session || session.expiresAt < Date.now()) {
+    if (!session || session.expiresAt <= Date.now()) {
       this.#storage.remove(SESSION_KEY);
       return;
     }
     const users = this.#storage.get<User[]>(USERS_KEY) ?? [];
     const user = users.find((u) => u.id === session.userId) ?? null;
+    if (!user) {
+      this.#storage.remove(SESSION_KEY);
+    }
     this.#currentUser.set(user);
   }
 
@@ -38,11 +46,15 @@ export class AuthService {
     this.#storage.set(USERS_KEY, users);
   }
 
-  signIn(username: string, password: string): { success: boolean; error?: string } {
+  signIn(username: string, password: string): AuthResult {
     const users = this.#getUsers();
-    const user = users.find((u) => u.username.toLowerCase() === username.toLowerCase());
+    const normalizedUsername = username.trim().toLowerCase();
+    const user = users.find((u) => u.username.toLowerCase() === normalizedUsername);
     if (!user) {
       return { success: false, error: 'User not found.' };
+    }
+    if (!user.passwordHash) {
+      return { success: false, error: 'This account uses passkey sign-in.' };
     }
     if (user.passwordHash !== password) {
       return { success: false, error: 'Incorrect password.' };
@@ -51,55 +63,50 @@ export class AuthService {
     return { success: true };
   }
 
-  signUp(
+  signUp(username: string, displayName: string, password: string, email?: string): AuthResult {
+    return this.#register(username, displayName, password, email, false);
+  }
+
+  signUpWithPasskey(username: string, displayName: string, email?: string): AuthResult {
+    return this.#register(username, displayName, '', email, true);
+  }
+
+  #register(
     username: string,
     displayName: string,
     password: string,
-    email?: string,
-  ): { success: boolean; error?: string } {
-    const users = this.#getUsers();
-    if (users.some((u) => u.username.toLowerCase() === username.toLowerCase())) {
-      return { success: false, error: 'Username already taken.' };
+    email: string | undefined,
+    withPasskey: boolean,
+  ): AuthResult {
+    const normalizedUsername = username.trim();
+    const normalizedDisplayName = displayName.trim();
+    if (!/^[a-zA-Z0-9_]{3,}$/.test(normalizedUsername)) {
+      return { success: false, error: 'Enter a valid username with at least 3 characters.' };
     }
-    const idx = users.length;
-    const newUser: User = {
-      id: 'user_' + MockDataService.uid(),
-      username,
-      email,
-      displayName,
-      passwordHash: password,
-      avatarInitials: MockDataService.initials(displayName),
-      avatarColor: MockDataService.avatarColor(idx),
-      createdAt: Date.now(),
-      passkeys: [],
-    };
-    users.push(newUser);
-    this.#saveUsers(users);
-    this.#startSession(newUser);
-    return { success: true };
-  }
+    if (normalizedDisplayName.length < 2) {
+      return { success: false, error: 'Display name must be at least 2 characters.' };
+    }
+    if (!withPasskey && password.length < 8) {
+      return { success: false, error: 'Password must be at least 8 characters.' };
+    }
 
-  signUpWithPasskey(
-    username: string,
-    displayName: string,
-    email?: string,
-  ): { success: boolean; error?: string } {
     const users = this.#getUsers();
-    if (users.some((u) => u.username.toLowerCase() === username.toLowerCase())) {
+    if (users.some((u) => u.username.toLowerCase() === normalizedUsername.toLowerCase())) {
       return { success: false, error: 'Username already taken.' };
     }
     const idx = users.length;
-    const newKey = { id: MockDataService.uid(), name: 'Primary passkey', createdAt: Date.now() };
     const newUser: User = {
       id: 'user_' + MockDataService.uid(),
-      username,
-      email,
-      displayName,
-      passwordHash: '',
-      avatarInitials: MockDataService.initials(displayName),
+      username: normalizedUsername,
+      email: email?.trim(),
+      displayName: normalizedDisplayName,
+      passwordHash: password,
+      avatarInitials: MockDataService.initials(normalizedDisplayName),
       avatarColor: MockDataService.avatarColor(idx),
       createdAt: Date.now(),
-      passkeys: [newKey],
+      passkeys: withPasskey
+        ? [{ id: MockDataService.uid(), name: 'Primary passkey', createdAt: Date.now() }]
+        : [],
     };
     users.push(newUser);
     this.#saveUsers(users);
@@ -139,16 +146,20 @@ export class AuthService {
     if (!current) {
       return { success: false, error: 'Not authenticated.' };
     }
-    if (current.passwordHash !== currentPassword) {
+    if (newPassword.length < 8) {
+      return { success: false, error: 'Password must be at least 8 characters.' };
+    }
+    if (current.passwordHash && current.passwordHash !== currentPassword) {
       return { success: false, error: 'Current password is incorrect.' };
     }
     const users = this.#getUsers();
     const idx = users.findIndex((u) => u.id === current.id);
-    if (idx !== -1) {
-      users[idx] = { ...users[idx], passwordHash: newPassword };
-      this.#saveUsers(users);
-      this.#currentUser.set(users[idx]);
+    if (idx === -1) {
+      return { success: false, error: 'Account not found.' };
     }
+    users[idx] = { ...users[idx], passwordHash: newPassword };
+    this.#saveUsers(users);
+    this.#currentUser.set(users[idx]);
     return { success: true };
   }
 
@@ -164,38 +175,57 @@ export class AuthService {
   }
 
   // ── Passkey mock ─────────────────────────────────────────────────────────
-  passkeyRegister(name: string): { success: boolean } {
+  passkeyRegister(name: string): AuthResult {
     const current = this.#currentUser();
     if (!current) {
-      return { success: false };
+      return { success: false, error: 'Not authenticated.' };
     }
-    const newKey = { id: MockDataService.uid(), name, createdAt: Date.now() };
+    const normalizedName = name.trim();
+    if (!normalizedName) {
+      return { success: false, error: 'Passkey name is required.' };
+    }
+    if (
+      current.passkeys.some(
+        (passkey) => passkey.name.toLowerCase() === normalizedName.toLowerCase(),
+      )
+    ) {
+      return { success: false, error: 'A passkey with that name already exists.' };
+    }
+    const newKey = { id: MockDataService.uid(), name: normalizedName, createdAt: Date.now() };
     this.updateProfile({ passkeys: [...current.passkeys, newKey] });
     return { success: true };
   }
 
-  passkeyRemove(passkeyId: string): void {
+  passkeyRemove(passkeyId: string): AuthResult {
     const current = this.#currentUser();
     if (!current) {
-      return;
+      return { success: false, error: 'Not authenticated.' };
+    }
+    if (!current.passwordHash && current.passkeys.length === 1) {
+      return { success: false, error: 'Set a password before removing your only passkey.' };
     }
     this.updateProfile({ passkeys: current.passkeys.filter((p) => p.id !== passkeyId) });
+    return { success: true };
   }
 
-  passkeySignIn(): { success: boolean } {
-    // Mock: sign in as the "me" seed user when passkey flow completes
+  passkeySignIn(username: string): AuthResult {
     const users = this.#getUsers();
-    const user = users.find((u) => u.id === 'user_me');
-    if (!user) {
-      return { success: false };
+    const normalizedUsername = username.trim().toLowerCase();
+    const user = users.find((candidate) => candidate.username.toLowerCase() === normalizedUsername);
+    if (!user || user.passkeys.length === 0) {
+      return { success: false, error: 'No passkey is registered for that username.' };
     }
     this.#startSession(user);
     return { success: true };
   }
 
-  resetPassword(username: string, newPassword: string): { success: boolean; error?: string } {
+  resetPassword(username: string, newPassword: string): AuthResult {
+    if (newPassword.length < 8) {
+      return { success: false, error: 'Password must be at least 8 characters.' };
+    }
     const users = this.#getUsers();
-    const idx = users.findIndex((u) => u.username.toLowerCase() === username.toLowerCase());
+    const normalizedUsername = username.trim().toLowerCase();
+    const idx = users.findIndex((u) => u.username.toLowerCase() === normalizedUsername);
     if (idx === -1) {
       return { success: false, error: 'No account found with that username.' };
     }
@@ -209,7 +239,8 @@ export class AuthService {
   }
 
   findUserByUsername(username: string): User | undefined {
-    return this.#getUsers().find((u) => u.username.toLowerCase() === username.toLowerCase());
+    const normalizedUsername = username.trim().toLowerCase();
+    return this.#getUsers().find((u) => u.username.toLowerCase() === normalizedUsername);
   }
 
   #startSession(user: User): void {

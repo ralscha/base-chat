@@ -4,6 +4,6 @@ export interface Conversation {
   lastMessage: string;
   lastMessageAt: number;
   lastMessageSenderId: string;
-  unreadCount: number; // from the perspective of the current user
+  unreadCounts: Record<string, number>; // keyed by participant user ID
   deletedBy: string[]; // userIds who "deleted" this conversation
 }

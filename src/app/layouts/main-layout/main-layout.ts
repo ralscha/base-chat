@@ -15,6 +15,7 @@ import { filter } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../core/services/auth.service';
 import { ChatService } from '../../core/services/chat.service';
+import { ContactsService } from '../../core/services/contacts.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { PresenceService } from '../../core/services/presence.service';
 import { ConversationPartnerService } from '../../core/services/conversation-partner.service';
@@ -41,6 +42,7 @@ import { TimeAgoPipe } from '../../shared/pipes/time-ago.pipe';
 export class MainLayoutComponent implements OnInit {
   protected readonly auth = inject(AuthService);
   protected readonly chat = inject(ChatService);
+  protected readonly contacts = inject(ContactsService);
   protected readonly presence = inject(PresenceService);
   protected readonly conversationPartners = inject(ConversationPartnerService);
   readonly #router = inject(Router);
@@ -72,8 +74,7 @@ export class MainLayoutComponent implements OnInit {
 
   protected readonly totalUnread = computed(() => this.chat.totalUnread());
 
-  // Tracks which conv:unreadCount combos have been notified to avoid re-notifying
-  readonly #notifiedKeys = new Set<string>();
+  readonly #previousUnreadCounts = new Map<string, number>();
 
   constructor() {
     // Keep page title in sync with unread count (feature: unread badge in title)
@@ -83,27 +84,30 @@ export class MainLayoutComponent implements OnInit {
     });
 
     // Browser notifications for new messages in non-active conversations
-    let isFirstRun = true;
     effect(() => {
       const convs = this.chat.conversations();
       const activeId = this.activeChatId();
-      if (isFirstRun) {
-        isFirstRun = false;
-        // Seed the known keys so we don't notify for pre-existing unreads on load
-        convs.forEach((c) => this.#notifiedKeys.add(`${c.id}:${c.unreadCount}`));
-        return;
+      const currentIds = new Set(convs.map((conversation) => conversation.id));
+      for (const conversation of convs) {
+        const unreadCount = this.chat.getUnreadCount(conversation);
+        const previousCount = this.#previousUnreadCounts.get(conversation.id);
+        if (
+          previousCount !== undefined &&
+          unreadCount > previousCount &&
+          conversation.id !== activeId
+        ) {
+          const name = this.conversationPartners.fromConversation(conversation).displayName;
+          this.#notifications.show(name, {
+            body: conversation.lastMessage || 'New message',
+            tag: conversation.id,
+          });
+        }
+        this.#previousUnreadCounts.set(conversation.id, unreadCount);
       }
-      for (const c of convs) {
-        if (c.unreadCount === 0 || c.id === activeId) {
-          continue;
+      for (const id of this.#previousUnreadCounts.keys()) {
+        if (!currentIds.has(id)) {
+          this.#previousUnreadCounts.delete(id);
         }
-        const key = `${c.id}:${c.unreadCount}`;
-        if (this.#notifiedKeys.has(key)) {
-          continue;
-        }
-        this.#notifiedKeys.add(key);
-        const name = this.conversationPartners.fromConversation(c).displayName;
-        this.#notifications.show(name, { body: c.lastMessage, tag: c.id });
       }
     });
   }
@@ -118,9 +122,14 @@ export class MainLayoutComponent implements OnInit {
       this.searchQuery.set(q);
     }
 
-    // Initialize presence for all known users
-    const users = ['user_alice', 'user_bob', 'user_carol', 'user_david', 'user_eve'];
-    this.presence.initialize(users);
+    const users = new Set(this.contacts.myContacts().map((contact) => contact.userId));
+    this.chat.conversations().forEach((conversation) => {
+      const partnerId = this.chat.getOtherParticipantId(conversation);
+      if (partnerId) {
+        users.add(partnerId);
+      }
+    });
+    this.presence.initialize([...users]);
 
     // Track active route to control mobile sidebar visibility
     this.#updateActiveChat(this.#router.url);
@@ -142,6 +151,11 @@ export class MainLayoutComponent implements OnInit {
 
   protected getConversationPartner(convId: string) {
     return this.conversationPartners.fromConversationId(convId)!;
+  }
+
+  protected getUnreadCount(convId: string): number {
+    const conversation = this.chat.getConversation(convId);
+    return conversation ? this.chat.getUnreadCount(conversation) : 0;
   }
 
   protected onSearch(event: Event): void {

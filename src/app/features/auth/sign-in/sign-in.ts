@@ -47,24 +47,34 @@ export class SignInComponent {
   }
 
   protected openPasskeyModal(): void {
+    this.error.set('');
     this.showPasskeyModal.set(true);
   }
 
   protected confirmPasskey(): void {
+    const username = this.signInModel().username.trim();
+    if (!username) {
+      this.showPasskeyModal.set(false);
+      this.error.set('Enter your username before using passkey sign-in.');
+      return;
+    }
     this.passkeyLoading.set(true);
     setTimeout(() => {
       this.passkeyLoading.set(false);
       this.showPasskeyModal.set(false);
-      const result = this.#auth.passkeySignIn();
+      const result = this.#auth.passkeySignIn(username);
       if (result.success) {
         this.#router.navigate(['/conversations']);
       } else {
-        this.error.set('Passkey authentication failed. (No passkey registered for this demo.)');
+        this.error.set(result.error ?? 'Passkey authentication failed.');
       }
     }, 1200);
   }
 
   protected cancelPasskey(): void {
+    if (this.passkeyLoading()) {
+      return;
+    }
     this.showPasskeyModal.set(false);
   }
 }

@@ -138,6 +138,9 @@ export class SignUpComponent {
   }
 
   protected cancelPasskey(): void {
+    if (this.passkeyLoading()) {
+      return;
+    }
     this.showPasskeyPrompt.set(false);
   }
 }

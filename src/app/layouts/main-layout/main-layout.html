@@ -59,9 +59,13 @@
               }}</span>
             </div>
             <div class="flex justify-between items-center gap-1">
-              <span class="text-sm text-base-content/60 truncate">{{ conv.lastMessage }}</span>
-              @if (conv.unreadCount > 0) {
-                <span class="badge badge-primary badge-sm shrink-0">{{ conv.unreadCount }}</span>
+              <span class="text-sm text-base-content/60 truncate">{{
+                conv.lastMessage || 'No messages yet'
+              }}</span>
+              @if (getUnreadCount(conv.id) > 0) {
+                <span class="badge badge-primary badge-sm shrink-0">{{
+                  getUnreadCount(conv.id)
+                }}</span>
               }
             </div>
           </div>

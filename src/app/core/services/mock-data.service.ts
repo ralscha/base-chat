@@ -170,7 +170,7 @@ export class MockDataService {
       lastMessage: 'See you tomorrow!',
       lastMessageAt: ts(0, 1),
       lastMessageSenderId: 'user_alice',
-      unreadCount: 2,
+      unreadCounts: { user_me: 2, user_alice: 0 },
       deletedBy: [],
     };
     const convBob: Conversation = {
@@ -179,7 +179,7 @@ export class MockDataService {
       lastMessage: 'Sure, sounds good.',
       lastMessageAt: ts(1, 3),
       lastMessageSenderId: 'user_me',
-      unreadCount: 0,
+      unreadCounts: { user_me: 0, user_bob: 0 },
       deletedBy: [],
     };
     const convCarol: Conversation = {
@@ -188,7 +188,7 @@ export class MockDataService {
       lastMessage: 'Did you see the game last night?',
       lastMessageAt: ts(2),
       lastMessageSenderId: 'user_carol',
-      unreadCount: 1,
+      unreadCounts: { user_me: 1, user_carol: 0 },
       deletedBy: [],
     };
     const convDavid: Conversation = {
@@ -197,7 +197,7 @@ export class MockDataService {
       lastMessage: 'Thanks for the help!',
       lastMessageAt: ts(5),
       lastMessageSenderId: 'user_david',
-      unreadCount: 0,
+      unreadCounts: { user_me: 0, user_david: 0 },
       deletedBy: [],
     };
     this.#storage.set('conversations', [convAlice, convBob, convCarol, convDavid]);

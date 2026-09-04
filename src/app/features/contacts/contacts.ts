@@ -27,11 +27,7 @@ export class ContactsComponent {
   protected addSuccess = signal('');
 
   protected filtered = computed(() => {
-    const q = this.searchQuery().toLowerCase();
-    if (!q) {
-      return this.contacts.myContacts();
-    }
-    return this.contacts.myContacts().filter((c) => c.displayName.toLowerCase().includes(q));
+    return this.contacts.search(this.searchQuery());
   });
 
   protected updateSearchQuery(event: Event): void {
@@ -44,7 +40,9 @@ export class ContactsComponent {
 
   protected openChat(contact: Contact): void {
     const conv = this.chat.getOrCreateConversation(contact.userId);
-    this.#router.navigate(['/conversations', conv.id]);
+    if (conv) {
+      this.#router.navigate(['/conversations', conv.id]);
+    }
   }
 
   protected toggleBlock(contact: Contact): void {
@@ -83,6 +81,7 @@ export class ContactsComponent {
     if (result.success) {
       this.addSuccess.set(`${user.displayName} added to contacts!`);
       this.addUsername.set('');
+      this.presence.track(user.id);
     } else {
       this.addError.set(result.error ?? 'Could not add contact.');
     }

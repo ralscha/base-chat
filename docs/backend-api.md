@@ -1094,10 +1094,7 @@ Event payload envelope:
 ```ts
 interface ConversationChannelEvent<T> {
   type:
-    | 'message.created'
-    | 'message.deleted'
-    | 'message.status.updated'
-    | 'message.reaction.updated';
+    'message.created' | 'message.deleted' | 'message.status.updated' | 'message.reaction.updated';
   emittedAt: number;
   data: T;
 }

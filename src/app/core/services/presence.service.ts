@@ -9,9 +9,12 @@ export class PresenceService implements OnDestroy {
   #intervalId: ReturnType<typeof setInterval> | null = null;
 
   initialize(userIds: string[]): void {
+    if (this.#intervalId !== null) {
+      clearInterval(this.#intervalId);
+    }
     // Seed initial statuses
     const initial: Record<string, boolean> = {};
-    userIds.forEach((id, i) => {
+    [...new Set(userIds)].forEach((id, i) => {
       initial[id] = i % 2 === 0;
     });
     this.#status.set(initial);
@@ -32,6 +35,13 @@ export class PresenceService implements OnDestroy {
         return updated;
       });
     }, 15_000);
+  }
+
+  track(userId: string): void {
+    if (!userId || userId in this.#status()) {
+      return;
+    }
+    this.#status.update((status) => ({ ...status, [userId]: false }));
   }
 
   isOnline(userId: string): boolean {

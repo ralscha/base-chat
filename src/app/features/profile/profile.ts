@@ -2,9 +2,9 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormField, FormRoot, form, minLength, required } from '@angular/forms/signals';
 import { DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
+import { AccountDataService } from '../../core/services/account-data.service';
 import { AuthService } from '../../core/services/auth.service';
 import { AvatarComponent } from '../../shared/components/avatar/avatar';
-import { MockDataService } from '../../core/services/mock-data.service';
 import { Theme, ThemeService } from '../../core/services/theme.service';
 
 @Component({
@@ -16,9 +16,11 @@ import { Theme, ThemeService } from '../../core/services/theme.service';
 export class ProfileComponent {
   protected readonly auth = inject(AuthService);
   protected readonly themeService = inject(ThemeService);
+  readonly #accountData = inject(AccountDataService);
   readonly #router = inject(Router);
 
   protected user = this.auth.currentUser;
+  protected hasPassword = computed(() => Boolean(this.user()?.passwordHash));
 
   // ── Display name ───────────────────────────────────────────────────────
   protected nameValue = signal(this.auth.currentUser()?.displayName ?? '');
@@ -52,10 +54,7 @@ export class ProfileComponent {
       this.nameError.set('');
       return;
     }
-    this.auth.updateProfile({
-      displayName: name,
-      avatarInitials: MockDataService.initials(name),
-    });
+    this.#accountData.updateDisplayName(name);
     this.nameValue.set(name);
     this.nameError.set('');
     this.nameSaved.set(true);
@@ -78,7 +77,10 @@ export class ProfileComponent {
     confirmPassword: '',
   });
   protected pwForm = form(this.pwModel, (path) => {
-    required(path.currentPassword, { message: 'Current password is required.' });
+    required(path.currentPassword, {
+      message: 'Current password is required.',
+      when: () => this.hasPassword(),
+    });
     required(path.newPassword, { message: 'New password is required.' });
     minLength(path.newPassword, 8, { message: 'Minimum 8 characters.' });
     required(path.confirmPassword, { message: 'Please confirm your password.' });
@@ -94,6 +96,7 @@ export class ProfileComponent {
   protected changePassword(event: Event): void {
     event.preventDefault();
     this.pwSubmitted.set(true);
+    this.pwSuccess.set(false);
     if (this.pwForm().invalid() || this.pwMismatch()) {
       return;
     }
@@ -103,6 +106,7 @@ export class ProfileComponent {
     if (result.success) {
       this.pwSuccess.set(true);
       this.pwSubmitted.set(false);
+      this.pwError.set('');
       this.pwModel.set({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } else {
       this.pwError.set(result.error ?? 'Error changing password.');
@@ -122,6 +126,9 @@ export class ProfileComponent {
   }
 
   protected closePasskeyModal(): void {
+    if (this.passkeyLoading()) {
+      return;
+    }
     this.showPasskeyModal.set(false);
   }
 
@@ -137,13 +144,18 @@ export class ProfileComponent {
     this.passkeyLoading.set(true);
     setTimeout(() => {
       this.passkeyLoading.set(false);
-      this.auth.passkeyRegister(this.passkeyName().trim());
-      this.showPasskeyModal.set(false);
+      const result = this.auth.passkeyRegister(this.passkeyName());
+      if (result.success) {
+        this.showPasskeyModal.set(false);
+      } else {
+        this.passkeyError.set(result.error ?? 'Could not register passkey.');
+      }
     }, 1000);
   }
 
   protected removePasskey(id: string): void {
-    this.auth.passkeyRemove(id);
+    const result = this.auth.passkeyRemove(id);
+    this.passkeyError.set(result.success ? '' : (result.error ?? 'Could not remove passkey.'));
   }
 
   // ── Danger zone ────────────────────────────────────────────────────────
@@ -154,7 +166,7 @@ export class ProfileComponent {
   }
 
   protected doDeleteAccount(): void {
-    this.auth.deleteAccount();
+    this.#accountData.deleteCurrentAccount();
     this.#router.navigate(['/auth/sign-in']);
   }
 

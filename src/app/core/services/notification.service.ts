@@ -10,18 +10,26 @@ export class NotificationService {
   readonly permission = this.#permission.asReadonly();
 
   async requestPermission(): Promise<void> {
-    if (!this.supported || Notification.permission === 'granted') {
+    if (!this.supported) {
+      this.#permission.set('denied');
+      return;
+    }
+    if (Notification.permission !== 'default') {
       this.#permission.set(Notification.permission);
       return;
     }
-    const perm = await Notification.requestPermission();
-    this.#permission.set(perm);
+    try {
+      const permission = await Notification.requestPermission();
+      this.#permission.set(permission);
+    } catch {
+      this.#permission.set('denied');
+    }
   }
 
   show(title: string, options?: NotificationOptions): void {
     if (!this.supported || Notification.permission !== 'granted') {
       return;
     }
-    new Notification(title, { icon: '/favicon.ico', ...options });
+    new Notification(title, { icon: '/favicon.svg', ...options });
   }
 }

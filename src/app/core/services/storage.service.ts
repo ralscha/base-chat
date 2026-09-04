@@ -5,28 +5,47 @@ const PREFIX = 'chat_';
 @Service()
 export class StorageService {
   get<T>(key: string): T | null {
-    const raw = localStorage.getItem(PREFIX + key);
+    let raw: string | null;
+    try {
+      raw = localStorage.getItem(PREFIX + key);
+    } catch {
+      return null;
+    }
     if (raw === null) {
       return null;
     }
     try {
       return JSON.parse(raw) as T;
     } catch {
+      this.remove(key);
       return null;
     }
   }
 
-  set<T>(key: string, value: T): void {
-    localStorage.setItem(PREFIX + key, JSON.stringify(value));
+  set<T>(key: string, value: T): boolean {
+    try {
+      localStorage.setItem(PREFIX + key, JSON.stringify(value));
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   remove(key: string): void {
-    localStorage.removeItem(PREFIX + key);
+    try {
+      localStorage.removeItem(PREFIX + key);
+    } catch {
+      // Storage may be unavailable in privacy-restricted browser contexts.
+    }
   }
 
   clear(): void {
-    Object.keys(localStorage)
-      .filter((k) => k.startsWith(PREFIX))
-      .forEach((k) => localStorage.removeItem(k));
+    try {
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith(PREFIX))
+        .forEach((k) => localStorage.removeItem(k));
+    } catch {
+      // Storage may be unavailable in privacy-restricted browser contexts.
+    }
   }
 }

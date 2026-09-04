@@ -103,6 +103,15 @@
 
     <!-- Input bar -->
     <div class="shrink-0 border-t border-base-300 bg-base-100 px-4 py-3">
+      @if (isBlocked()) {
+        <div class="alert alert-warning py-2 mb-2 text-sm">
+          Unblock {{ partner()!.displayName }} in Contacts to send messages.
+        </div>
+      }
+      @if (composerError()) {
+        <div class="alert alert-error py-2 mb-2 text-sm">{{ composerError() }}</div>
+      }
+
       <!-- Staged image preview -->
       @if (stagedImage()) {
         <div class="mb-2 flex items-start">
@@ -142,6 +151,7 @@
           class="btn btn-ghost btn-circle btn-sm shrink-0 text-base-content/60 hover:text-base-content"
           (click)="fileInput.click()"
           aria-label="Attach image"
+          [disabled]="isBlocked()"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -165,9 +175,10 @@
             type="button"
             class="btn btn-ghost btn-circle btn-sm shrink-0 text-base-content/60 hover:text-base-content"
             [class.text-primary]="showEmojiPicker()"
-            (click)="toggleEmojiPicker()"
+            (click)="toggleEmojiPicker($event)"
             aria-label="Insert emoji"
             [attr.aria-expanded]="showEmojiPicker()"
+            [disabled]="isBlocked()"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -193,12 +204,13 @@
 
         <textarea
           class="textarea flex-1 resize-none text-sm min-h-[42px] max-h-32 leading-snug border border-base-300 focus:border-primary focus:outline-none"
-          placeholder="Type a message…"
+          [placeholder]="isBlocked() ? 'This contact is blocked' : 'Type a message…'"
           rows="1"
           [value]="messageText()"
           (input)="updateMessageText($event)"
           (keydown)="onKeyDown($event)"
           (paste)="onPaste($event)"
+          [disabled]="isBlocked()"
         ></textarea>
 
         <input
@@ -207,11 +219,12 @@
           accept="image/*"
           class="hidden"
           (change)="onFileSelect($event)"
+          [disabled]="isBlocked()"
         />
 
         <button
           class="btn btn-primary btn-circle shrink-0"
-          [disabled]="!messageText().trim() && !stagedImage()"
+          [disabled]="isBlocked() || (!messageText().trim() && !stagedImage())"
           (click)="send()"
           aria-label="Send message"
         >

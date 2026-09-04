@@ -15,7 +15,9 @@ export class ContactsService {
 
   readonly myContacts = computed(() => {
     const me = this.#auth.currentUser()?.id;
-    return this.#contacts().filter((c) => c.ownerId === me);
+    return this.#contacts()
+      .filter((c) => c.ownerId === me)
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
   });
 
   constructor() {
@@ -31,12 +33,19 @@ export class ContactsService {
   }
 
   search(query: string): Contact[] {
-    const q = query.toLowerCase();
-    return this.myContacts().filter((c) => c.displayName.toLowerCase().includes(q));
+    const q = query.trim().toLowerCase();
+    return this.myContacts().filter(
+      (contact) =>
+        contact.displayName.toLowerCase().includes(q) ||
+        (this.#auth.getUserById(contact.userId)?.username.toLowerCase().includes(q) ?? false),
+    );
   }
 
   addContact(user: User): { success: boolean; error?: string } {
-    const me = this.#auth.currentUser()!.id;
+    const me = this.#auth.currentUser()?.id;
+    if (!me) {
+      return { success: false, error: 'Not authenticated.' };
+    }
     if (user.id === me) {
       return { success: false, error: 'Cannot add yourself.' };
     }
@@ -60,13 +69,27 @@ export class ContactsService {
   }
 
   removeContact(contactId: string): void {
-    this.#contacts.update((list) => list.filter((c) => c.id !== contactId));
+    const me = this.#auth.currentUser()?.id;
+    if (!me) {
+      return;
+    }
+    this.#contacts.update((list) =>
+      list.filter((contact) => contact.id !== contactId || contact.ownerId !== me),
+    );
     this.#save();
   }
 
   toggleBlock(contactId: string): void {
+    const me = this.#auth.currentUser()?.id;
+    if (!me) {
+      return;
+    }
     this.#contacts.update((list) =>
-      list.map((c) => (c.id === contactId ? { ...c, blocked: !c.blocked } : c)),
+      list.map((contact) =>
+        contact.id === contactId && contact.ownerId === me
+          ? { ...contact, blocked: !contact.blocked }
+          : contact,
+      ),
     );
     this.#save();
   }
@@ -74,5 +97,32 @@ export class ContactsService {
   getContactByUserId(userId: string): Contact | undefined {
     const me = this.#auth.currentUser()?.id;
     return this.#contacts().find((c) => c.ownerId === me && c.userId === userId);
+  }
+
+  isBlocked(userId: string): boolean {
+    return this.getContactByUserId(userId)?.blocked ?? false;
+  }
+
+  syncUser(user: User): void {
+    this.#contacts.update((list) =>
+      list.map((contact) =>
+        contact.userId === user.id
+          ? {
+              ...contact,
+              displayName: user.displayName,
+              avatarInitials: user.avatarInitials,
+              avatarColor: user.avatarColor,
+            }
+          : contact,
+      ),
+    );
+    this.#save();
+  }
+
+  deleteUserData(userId: string): void {
+    this.#contacts.update((list) =>
+      list.filter((contact) => contact.ownerId !== userId && contact.userId !== userId),
+    );
+    this.#save();
   }
 }

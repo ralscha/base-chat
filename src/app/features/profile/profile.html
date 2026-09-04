@@ -196,31 +196,39 @@
       <!-- Change password -->
       <div class="card bg-base-100 shadow border border-base-300">
         <div class="card-body">
-          <h2 class="card-title text-base">Change password</h2>
+          <h2 class="card-title text-base">
+            {{ hasPassword() ? 'Change password' : 'Set password' }}
+          </h2>
 
           @if (pwError()) {
             <div class="alert alert-error text-sm py-2">{{ pwError() }}</div>
           }
           @if (pwSuccess()) {
-            <div class="alert alert-success text-sm py-2">Password changed successfully!</div>
+            <div class="alert alert-success text-sm py-2">Password updated successfully!</div>
           }
 
           <form [formRoot]="pwForm" (submit)="changePassword($event)" class="flex flex-col gap-4">
-            <div class="flex flex-col gap-1">
-              <label class="label" for="currentPassword">Current password</label>
-              <input
-                id="currentPassword"
-                type="password"
-                [formField]="pwForm.currentPassword"
-                class="input w-full border border-base-300 focus:border-primary focus:outline-none"
-                placeholder="••••••••"
-                [class.input-error]="
-                  pwForm.currentPassword().invalid() &&
-                  (pwForm.currentPassword().touched() || pwSubmitted())
-                "
-                autocomplete="current-password"
-              />
-            </div>
+            @if (hasPassword()) {
+              <div class="flex flex-col gap-1">
+                <label class="label" for="currentPassword">Current password</label>
+                <input
+                  id="currentPassword"
+                  type="password"
+                  [formField]="pwForm.currentPassword"
+                  class="input w-full border border-base-300 focus:border-primary focus:outline-none"
+                  placeholder="••••••••"
+                  [class.input-error]="
+                    pwForm.currentPassword().invalid() &&
+                    (pwForm.currentPassword().touched() || pwSubmitted())
+                  "
+                  autocomplete="current-password"
+                />
+              </div>
+            } @else {
+              <p class="text-sm text-base-content/70">
+                Add a password so you can sign in if your passkey is unavailable.
+              </p>
+            }
             <div class="flex flex-col gap-1">
               <label class="label" for="newPassword">New password</label>
               <input
@@ -259,7 +267,9 @@
                 <p class="label text-error text-xs">Passwords do not match.</p>
               }
             </div>
-            <button type="submit" class="btn btn-primary btn-sm self-start">Update password</button>
+            <button type="submit" class="btn btn-primary btn-sm self-start">
+              {{ hasPassword() ? 'Update password' : 'Set password' }}
+            </button>
           </form>
         </div>
       </div>
@@ -287,6 +297,10 @@
               Add passkey
             </button>
           </div>
+
+          @if (passkeyError()) {
+            <div class="alert alert-error text-sm py-2">{{ passkeyError() }}</div>
+          }
 
           @if ((user()?.passkeys?.length ?? 0) === 0) {
             <p class="text-sm text-base-content/50">No passkeys registered yet.</p>
@@ -317,6 +331,7 @@
                   <button
                     class="btn btn-ghost btn-circle btn-xs text-error"
                     (click)="removePasskey(pk.id)"
+                    [attr.aria-label]="'Remove passkey ' + pk.name"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

@@ -19,9 +19,14 @@ import { AvatarComponent } from '../../../shared/components/avatar/avatar';
 import { MessageBubbleComponent } from '../message-bubble/message-bubble';
 import { EmojiPickerComponent } from '../../../shared/components/emoji-picker/emoji-picker';
 
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+
 @Component({
   selector: 'app-chat-window',
-  host: { class: 'flex flex-col flex-1 min-h-0' },
+  host: {
+    class: 'flex flex-col flex-1 min-h-0',
+    '(document:click)': 'closeEmojiPicker()',
+  },
   imports: [AvatarComponent, MessageBubbleComponent, EmojiPickerComponent],
   templateUrl: './chat-window.html',
 })
@@ -41,6 +46,7 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked {
   protected showDeleteModal = signal(false);
   protected showEmojiPicker = signal(false);
   protected stagedImage = signal<string | null>(null);
+  protected composerError = signal('');
 
   protected conversation = computed(() => this.chat.getConversation(this.conversationId()));
 
@@ -53,12 +59,19 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked {
   });
 
   protected messages = computed(() => this.chat.getMessages(this.conversationId()));
+  protected isBlocked = computed(() => this.chat.isConversationBlocked(this.conversationId()));
 
   #prevMessageCount = 0;
 
   ngOnInit(): void {
     this.#route.paramMap.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe((params) => {
       const id = params.get('id') ?? '';
+      if (id !== this.conversationId()) {
+        this.messageText.set('');
+        this.stagedImage.set(null);
+        this.composerError.set('');
+        this.showEmojiPicker.set(false);
+      }
       this.conversationId.set(id);
       this.chat.markConversationRead(id);
       this.#prevMessageCount = 0;
@@ -86,9 +99,14 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked {
     if (!text && !image) {
       return;
     }
-    this.chat.sendMessage(this.conversationId(), text, image ?? undefined);
+    const result = this.chat.sendMessage(this.conversationId(), text, image ?? undefined);
+    if (!result.success) {
+      this.composerError.set(result.error ?? 'Could not send message.');
+      return;
+    }
     this.messageText.set('');
     this.stagedImage.set(null);
+    this.composerError.set('');
     this.showEmojiPicker.set(false);
   }
 
@@ -101,20 +119,18 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked {
 
   protected updateMessageText(event: Event): void {
     this.messageText.set((event.target as HTMLTextAreaElement).value);
+    this.composerError.set('');
   }
 
   // ── Emoji picker ────────────────────────────────────────────────────────
 
-  protected toggleEmojiPicker(): void {
-    const next = !this.showEmojiPicker();
-    this.showEmojiPicker.set(next);
-    if (next) {
-      const close = () => {
-        this.showEmojiPicker.set(false);
-        document.removeEventListener('click', close);
-      };
-      setTimeout(() => document.addEventListener('click', close), 0);
-    }
+  protected toggleEmojiPicker(event: MouseEvent): void {
+    event.stopPropagation();
+    this.showEmojiPicker.update((open) => !open);
+  }
+
+  protected closeEmojiPicker(): void {
+    this.showEmojiPicker.set(false);
   }
 
   protected insertEmoji(emoji: string): void {
@@ -126,10 +142,10 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked {
 
   protected onFileSelect(event: Event): void {
     const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file || !file.type.startsWith('image/')) {
+    if (!file) {
       return;
     }
-    this.#readImageFile(file);
+    this.#stageImageFile(file);
     (event.target as HTMLInputElement).value = '';
   }
 
@@ -143,21 +159,32 @@ export class ChatWindowComponent implements OnInit, AfterViewChecked {
         event.preventDefault();
         const file = item.getAsFile();
         if (file) {
-          this.#readImageFile(file);
+          this.#stageImageFile(file);
         }
         break;
       }
     }
   }
 
-  #readImageFile(file: File): void {
+  #stageImageFile(file: File): void {
+    this.composerError.set('');
+    if (!file.type.startsWith('image/')) {
+      this.composerError.set('Choose a valid image file.');
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      this.composerError.set('Images must be 2 MB or smaller.');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => this.stagedImage.set(reader.result as string);
+    reader.onerror = () => this.composerError.set('Could not read that image.');
     reader.readAsDataURL(file);
   }
 
   protected clearStagedImage(): void {
     this.stagedImage.set(null);
+    this.composerError.set('');
   }
 
   // ── Conversation actions ────────────────────────────────────────────────

@@ -1,6 +1,8 @@
 # BaseChat
 
-BaseChat is the **frontend foundation** for a real-time chat application. It provides the complete UI layer: authentication, contact management, and direct messaging, ready to be paired with a compatible backend.
+BaseChat is the **frontend foundation** for a real-time chat application. It provides an Angular UI for authentication, contact management, and direct messaging, ready to be paired with a compatible backend.
+
+The repository currently runs in demo mode: users, sessions, contacts, conversations, and messages are stored in browser `localStorage`. Passkey ceremonies, presence, delivery, and password recovery are simulated. No credentials or message data leave the browser.
 
 ## Tech Stack
 
@@ -9,39 +11,44 @@ BaseChat is the **frontend foundation** for a real-time chat application. It pro
 | Framework       | [Angular](https://angular.dev) 22                                            |
 | Styling         | [Tailwind CSS](https://tailwindcss.com) 4 + [daisyUI](https://daisyui.com) 5 |
 | Language        | TypeScript 6.0                                                               |
-| Package Manager | [Bun](https://bun.sh)                                                        |
+| Package Manager | [pnpm](https://pnpm.io)                                                      |
 | Linting         | ESLint + angular-eslint                                                      |
 | Formatting      | Prettier                                                                     |
 
 ## Features
 
-- **Authentication**: sign in, sign up, forgot/reset password, passkey support
+- **Authentication**: sign in, sign up, forgot/reset password, simulated passkey flows
 - **Contacts**: contact list, add, remove, block, unblock
 - **Direct Messaging**: conversation list, message history, send/delete messages, unread badges
 - **Profile**: view and update profile, change password, passkey management, account deletion
-- **Real-time**: client ready for server-pushed events via [Centrifugo](https://centrifugal.dev)
+- **Real-time contract**: documented event and channel conventions for a future Centrifugo client
 - **Theming**: light/dark mode toggle with daisyUI themes
 
 ## Getting Started
 
 ```bash
 # Install dependencies
-bun install
+pnpm install
 
 # Start the development server
-bun start
+pnpm start
 
 # Build for production
-bun run build
+pnpm build
 
 # Lint
-bun run lint
+pnpm lint
+
+# Run unit tests
+pnpm test
 
 # Format
-bun run format
+pnpm format
 ```
 
 The dev server runs at `http://localhost:4200`.
+
+Use `me` / `password123` to explore the seeded demo. Other seeded usernames are listed in `MockDataService`; their short passwords exist only for demo sign-in compatibility.
 
 ## Backend Contract
 

@@ -6,7 +6,9 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "format": "npx prettier --write .",
+    "test": "ng test --watch=false",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "lint": "ng lint"
   },
   "private": true,
@@ -32,9 +34,11 @@
     "@tailwindcss/postcss": "4.3.3",
     "angular-eslint": "22.2.0",
     "eslint": "10.9.1",
+    "jsdom": "30.0.1",
     "postcss": "8.5.28",
     "prettier": "3.9.6",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.69.0"
+    "typescript-eslint": "8.69.0",
+    "vitest": "4.1.0"
   }
 }
