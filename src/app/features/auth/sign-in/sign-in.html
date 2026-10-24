@@ -66,12 +66,7 @@
         }
       </div>
 
-      <button type="submit" class="btn btn-primary w-full" [disabled]="loading()">
-        @if (loading()) {
-          <span class="loading loading-spinner loading-sm"></span>
-        }
-        Sign in
-      </button>
+      <button type="submit" class="btn btn-primary w-full">Sign in</button>
     </form>
 
     <div class="divider text-xs">OR</div>
@@ -127,22 +122,12 @@
         Passkey Authentication
       </h3>
       <p class="py-4 text-sm text-base-content/70">
-        Your device will now prompt you for a passkey (fingerprint, face ID, or security key).
-        <br /><br />
-        <em>(Demo mode: enter the username of an account with a registered passkey first.)</em>
+        Enter the username of an account with a registered demo passkey first. This local demo does
+        not use device authentication or create a real credential.
       </p>
       <div class="modal-action">
         <button class="btn btn-ghost" (click)="cancelPasskey()">Cancel</button>
-        <button
-          class="btn btn-primary gap-2"
-          (click)="confirmPasskey()"
-          [disabled]="passkeyLoading()"
-        >
-          @if (passkeyLoading()) {
-            <span class="loading loading-spinner loading-sm"></span>
-          }
-          Authenticate
-        </button>
+        <button class="btn btn-primary gap-2" (click)="confirmPasskey()">Authenticate</button>
       </div>
     </div>
     <div

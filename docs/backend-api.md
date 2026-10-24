@@ -18,6 +18,9 @@ Covered UI features:
 - Conversation list with unread counters
 - Create or reopen direct conversation from a contact
 - Message history, send message, delete own message
+- Quoted replies with links to the original message
+- Shared checklist messages and item editing by either participant
+- Personal bookmarks and named collections
 - Mark conversation as read
 - Delete conversation for the current user
 - Account deletion
@@ -142,6 +145,20 @@ interface MessageDto {
   deletedBySender: boolean;
   imageUrl?: string | null;
   reactions?: Record<string, string[]>;
+  replyToId?: string | null;
+  checklist?: MessageChecklistDto | null;
+}
+
+interface MessageChecklistDto {
+  title: string;
+  items: { id: string; text: string; completed: boolean }[];
+}
+
+interface BookmarkDto {
+  messageId: string;
+  conversationId: string;
+  collection: string;
+  savedAt: number;
 }
 
 interface SessionDto {
@@ -803,13 +820,20 @@ Request:
 interface SendMessageRequest {
   text: string;
   imageUrl?: string | null;
+  replyToId?: string | null;
+  checklist?: { title: string; items: string[] };
 }
 ```
 
 Validation rules:
 
-- `text`: `string`, required unless `imageUrl` is provided, trimmed
+- `text`: `string`, required unless `imageUrl` or `checklist` is provided, trimmed
 - `imageUrl`: `string`, optional URL of a previously uploaded image (see `POST /api/v1/uploads/images`)
+- `replyToId`: optional ID of a message in this conversation that is visible to the caller
+- `checklist`: a title of 1–100 characters and 1–50 nonblank items of at most 200 characters each;
+  trim the title/items and assign stable item IDs on the server
+- Reject writes from nonparticipants and blocked conversations. The current UI sends checklists
+  separately from text/image messages.
 
 Response `201 Created`:
 
@@ -822,6 +846,8 @@ Backend behavior:
 - Store the new message with initial `status: 'sent'`.
 - Update the conversation summary for both participants.
 - Increment `unreadCount` for the receiving participant.
+- Store reply references rather than copies of original content. Resolve quoted content using the
+  requesting user's visibility rules, showing an unavailable original without its content when needed.
 
 Realtime side effects:
 
@@ -892,6 +918,63 @@ Realtime side effects:
 - Publish `message.deleted` on the conversation channel.
 - Publish `conversation.upsert` on the sender's personal channel only if the deleted message affected the visible conversation preview.
 
+## Checklist Endpoints
+
+Both participants can edit a visible checklist message. Enforce the same conversation access and
+block rules as sending messages. Each mutation returns `ApiResponse<MessageDto>` and publishes
+`message.checklist.updated` on the conversation channel. Editing an item does not create a new message
+or alter the original message timestamp.
+
+### `POST /api/v1/messages/{messageId}/checklist/items`
+
+Request: `{ text: string }`. Trim the text, require 1–200 characters, and reject additions beyond
+50 items. Generate a stable item ID and initialize `completed` to `false`.
+
+### `PATCH /api/v1/messages/{messageId}/checklist/items/{itemId}`
+
+Request: `{ completed: boolean }`. Set the requested state explicitly so retried requests are
+idempotent. Reject missing messages or item IDs.
+
+### `DELETE /api/v1/messages/{messageId}/checklist/items/{itemId}`
+
+Remove the item. An existing checklist may become empty and can receive new items later.
+
+## Bookmark Endpoints
+
+Bookmarks and collections are private to the authenticated user. Do not accept an owner ID from
+request bodies or expose another participant's bookmarks through conversation events. Store message
+references, not copies of their content. Resolve messages only when currently visible to the owner;
+an unavailable original may remain as a removable reference without its content. Account deletion
+must remove owned bookmarks/collections and references to permanently removed messages.
+
+### `GET /api/v1/me/bookmarks`
+
+Return `ApiResponse<BookmarkDto[]>`, ordered by `savedAt` descending. Message content can be resolved
+through the existing conversation message endpoint under the same access checks.
+
+### `PUT /api/v1/me/bookmarks/{messageId}`
+
+Request: `{ collection?: string }`. Save a visible message, or move an existing bookmark to the
+specified existing collection. Use `Saved messages` when no collection is provided. A user can save each
+message only once. Return `ApiResponse<BookmarkDto>`.
+
+### `DELETE /api/v1/me/bookmarks/{messageId}`
+
+Remove only the caller's bookmark. Return `204 No Content`.
+
+### `GET /api/v1/me/bookmark-collections`
+
+Return `ApiResponse<string[]>` containing the caller's collection names, including empty collections.
+
+### `POST /api/v1/me/bookmark-collections`
+
+Request: `{ name: string }`. Require 1–60 characters after trimming and collapsing whitespace,
+and reject case-insensitive duplicates within the owner's collections.
+Return `ApiResponse<string>` with the canonical saved name.
+
+For synchronization across devices, publish `bookmarks.updated` on the owner's personal channel
+after a bookmark or collection mutation; the client can reload both lists.
+
 ## Realtime Bootstrap Endpoint
 
 ### `POST /api/v1/realtime/centrifugo/token`
@@ -961,6 +1044,7 @@ interface UserChannelEvent<T> {
     | 'profile.updated'
     | 'passkey.created'
     | 'passkey.deleted'
+    | 'bookmarks.updated'
     | 'account.deleted';
   emittedAt: number;
   data: T;
@@ -1094,7 +1178,11 @@ Event payload envelope:
 ```ts
 interface ConversationChannelEvent<T> {
   type:
-    'message.created' | 'message.deleted' | 'message.status.updated' | 'message.reaction.updated';
+    | 'message.created'
+    | 'message.deleted'
+    | 'message.status.updated'
+    | 'message.reaction.updated'
+    | 'message.checklist.updated';
   emittedAt: number;
   data: T;
 }
@@ -1104,7 +1192,7 @@ interface ConversationChannelEvent<T> {
 
 ```ts
 interface MessageCreatedEventData {
-  message: MessageDto; // includes imageUrl and reactions if present
+  message: MessageDto; // includes imageUrl, reactions, replyToId, and checklist if present
 }
 ```
 
@@ -1158,6 +1246,19 @@ interface MessageReactionUpdatedEventData {
 When to publish:
 
 - After `POST /api/v1/messages/{messageId}/reactions` succeeds.
+
+#### `message.checklist.updated`
+
+```ts
+interface MessageChecklistUpdatedEventData {
+  messageId: string;
+  conversationId: string;
+  checklist: MessageChecklistDto;
+}
+```
+
+Publish the current full checklist after an item is added, checked, unchecked, or removed. Apply
+the receiving user's message visibility rules, including sender-only deletion.
 
 ## Minimum Event Flow Per Feature
 

@@ -31,7 +31,6 @@ export class ResetPasswordComponent {
 
   protected submitted = signal(false);
   protected error = signal('');
-  protected loading = signal(false);
   protected success = signal(false);
 
   protected submit(event: Event): void {
@@ -40,17 +39,13 @@ export class ResetPasswordComponent {
     if (this.resetPasswordForm().invalid() || this.passwordsMismatch()) {
       return;
     }
-    this.loading.set(true);
     this.error.set('');
     const { username, password } = this.resetPasswordModel();
-    setTimeout(() => {
-      this.loading.set(false);
-      const result = this.#auth.resetPassword(username, password);
-      if (!result.success) {
-        this.error.set(result.error ?? 'No account found with that username.');
-        return;
-      }
-      this.success.set(true);
-    }, 600);
+    const result = this.#auth.resetPassword(username, password);
+    if (!result.success) {
+      this.error.set(result.error ?? 'No account found with that username.');
+      return;
+    }
+    this.success.set(true);
   }
 }

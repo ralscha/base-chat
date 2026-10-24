@@ -64,9 +64,7 @@ export class SignUpComponent {
   });
 
   protected error = signal('');
-  protected loading = signal(false);
   protected showPasskeyPrompt = signal(false);
-  protected passkeyLoading = signal(false);
 
   protected switchMode(mode: 'password' | 'passkey'): void {
     if (this.registrationMode() === mode) {
@@ -102,11 +100,9 @@ export class SignUpComponent {
     if (this.signUpForm().invalid() || this.passwordsMismatch()) {
       return;
     }
-    this.loading.set(true);
     this.error.set('');
     const { username, email, displayName, password } = this.signUpModel();
     const result = this.#auth.signUp(username, displayName, password, email);
-    this.loading.set(false);
     if (result.success) {
       this.#router.navigate(['/conversations']);
     } else {
@@ -122,25 +118,18 @@ export class SignUpComponent {
   }
 
   protected confirmPasskey(): void {
-    this.passkeyLoading.set(true);
     this.error.set('');
     const { username, email, displayName } = this.signUpModel();
-    setTimeout(() => {
-      const result = this.#auth.signUpWithPasskey(username, displayName, email);
-      this.passkeyLoading.set(false);
-      this.showPasskeyPrompt.set(false);
-      if (result.success) {
-        this.#router.navigate(['/conversations']);
-      } else {
-        this.error.set(result.error ?? 'Passkey registration failed.');
-      }
-    }, 1200);
+    const result = this.#auth.signUpWithPasskey(username, displayName, email);
+    this.showPasskeyPrompt.set(false);
+    if (result.success) {
+      this.#router.navigate(['/conversations']);
+    } else {
+      this.error.set(result.error ?? 'Passkey registration failed.');
+    }
   }
 
   protected cancelPasskey(): void {
-    if (this.passkeyLoading()) {
-      return;
-    }
     this.showPasskeyPrompt.set(false);
   }
 }

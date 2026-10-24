@@ -7,7 +7,7 @@ import { User, AuthSession } from '../models/user.model';
 const SESSION_KEY = 'session';
 const USERS_KEY = 'users';
 
-interface AuthResult {
+export interface AuthResult {
   success: boolean;
   error?: string;
 }
@@ -26,11 +26,18 @@ export class AuthService {
 
   #restoreSession(): void {
     const session = this.#storage.get<AuthSession>(SESSION_KEY);
-    if (!session || session.expiresAt <= Date.now()) {
+    if (
+      !session ||
+      typeof session.userId !== 'string' ||
+      typeof session.token !== 'string' ||
+      !session.token ||
+      !Number.isFinite(session.expiresAt) ||
+      session.expiresAt <= Date.now()
+    ) {
       this.#storage.remove(SESSION_KEY);
       return;
     }
-    const users = this.#storage.get<User[]>(USERS_KEY) ?? [];
+    const users = this.#getUsers();
     const user = users.find((u) => u.id === session.userId) ?? null;
     if (!user) {
       this.#storage.remove(SESSION_KEY);
@@ -39,11 +46,12 @@ export class AuthService {
   }
 
   #getUsers(): User[] {
-    return this.#storage.get<User[]>(USERS_KEY) ?? [];
+    const users = this.#storage.get<User[]>(USERS_KEY);
+    return Array.isArray(users) ? users : [];
   }
 
-  #saveUsers(users: User[]): void {
-    this.#storage.set(USERS_KEY, users);
+  #saveUsers(users: User[]): boolean {
+    return this.#storage.set(USERS_KEY, users);
   }
 
   signIn(username: string, password: string): AuthResult {
@@ -59,8 +67,7 @@ export class AuthService {
     if (user.passwordHash !== password) {
       return { success: false, error: 'Incorrect password.' };
     }
-    this.#startSession(user);
-    return { success: true };
+    return this.#startSession(user);
   }
 
   signUp(username: string, displayName: string, password: string, email?: string): AuthResult {
@@ -109,9 +116,20 @@ export class AuthService {
         : [],
     };
     users.push(newUser);
-    this.#saveUsers(users);
-    this.#startSession(newUser);
-    return { success: true };
+    if (!this.#saveUsers(users)) {
+      return {
+        success: false,
+        error: 'Could not save your account. Check browser storage and try again.',
+      };
+    }
+    const result = this.#startSession(newUser);
+    return result.success
+      ? result
+      : {
+          success: false,
+          error:
+            'Your account was created, but the session could not be saved. Check browser storage and sign in again.',
+        };
   }
 
   signOut(): void {
@@ -122,26 +140,29 @@ export class AuthService {
 
   updateProfile(
     updates: Partial<Pick<User, 'displayName' | 'avatarInitials' | 'avatarColor' | 'passkeys'>>,
-  ): void {
+  ): AuthResult {
     const current = this.#currentUser();
     if (!current) {
-      return;
+      return { success: false, error: 'Not authenticated.' };
     }
     const users = this.#getUsers();
     const idx = users.findIndex((u) => u.id === current.id);
     if (idx === -1) {
-      return;
+      return { success: false, error: 'Account not found.' };
     }
     const updated = { ...users[idx], ...updates };
     users[idx] = updated;
-    this.#saveUsers(users);
+    if (!this.#saveUsers(users)) {
+      return {
+        success: false,
+        error: 'Could not save your profile. Check browser storage and try again.',
+      };
+    }
     this.#currentUser.set(updated);
+    return { success: true };
   }
 
-  changePassword(
-    currentPassword: string,
-    newPassword: string,
-  ): { success: boolean; error?: string } {
+  changePassword(currentPassword: string, newPassword: string): AuthResult {
     const current = this.#currentUser();
     if (!current) {
       return { success: false, error: 'Not authenticated.' };
@@ -149,34 +170,45 @@ export class AuthService {
     if (newPassword.length < 8) {
       return { success: false, error: 'Password must be at least 8 characters.' };
     }
-    if (current.passwordHash && current.passwordHash !== currentPassword) {
-      return { success: false, error: 'Current password is incorrect.' };
-    }
     const users = this.#getUsers();
     const idx = users.findIndex((u) => u.id === current.id);
     if (idx === -1) {
       return { success: false, error: 'Account not found.' };
     }
+    if (users[idx].passwordHash && users[idx].passwordHash !== currentPassword) {
+      return { success: false, error: 'Current password is incorrect.' };
+    }
     users[idx] = { ...users[idx], passwordHash: newPassword };
-    this.#saveUsers(users);
+    if (!this.#saveUsers(users)) {
+      return {
+        success: false,
+        error: 'Could not save your password. Check browser storage and try again.',
+      };
+    }
     this.#currentUser.set(users[idx]);
     return { success: true };
   }
 
-  deleteAccount(): void {
+  deleteAccount(): AuthResult {
     const current = this.#currentUser();
     if (!current) {
-      return;
+      return { success: false, error: 'Not authenticated.' };
     }
     const users = this.#getUsers().filter((u) => u.id !== current.id);
-    this.#saveUsers(users);
+    if (!this.#saveUsers(users)) {
+      return {
+        success: false,
+        error: 'Could not delete your account. Check browser storage and try again.',
+      };
+    }
     this.#storage.remove(SESSION_KEY);
     this.#currentUser.set(null);
+    return { success: true };
   }
 
   // ── Passkey mock ─────────────────────────────────────────────────────────
   passkeyRegister(name: string): AuthResult {
-    const current = this.#currentUser();
+    const current = this.getUserById(this.#currentUser()?.id ?? '');
     if (!current) {
       return { success: false, error: 'Not authenticated.' };
     }
@@ -192,20 +224,21 @@ export class AuthService {
       return { success: false, error: 'A passkey with that name already exists.' };
     }
     const newKey = { id: MockDataService.uid(), name: normalizedName, createdAt: Date.now() };
-    this.updateProfile({ passkeys: [...current.passkeys, newKey] });
-    return { success: true };
+    return this.updateProfile({ passkeys: [...current.passkeys, newKey] });
   }
 
   passkeyRemove(passkeyId: string): AuthResult {
-    const current = this.#currentUser();
+    const current = this.getUserById(this.#currentUser()?.id ?? '');
     if (!current) {
       return { success: false, error: 'Not authenticated.' };
+    }
+    if (!current.passkeys.some((passkey) => passkey.id === passkeyId)) {
+      return { success: false, error: 'Passkey not found.' };
     }
     if (!current.passwordHash && current.passkeys.length === 1) {
       return { success: false, error: 'Set a password before removing your only passkey.' };
     }
-    this.updateProfile({ passkeys: current.passkeys.filter((p) => p.id !== passkeyId) });
-    return { success: true };
+    return this.updateProfile({ passkeys: current.passkeys.filter((p) => p.id !== passkeyId) });
   }
 
   passkeySignIn(username: string): AuthResult {
@@ -215,8 +248,7 @@ export class AuthService {
     if (!user || user.passkeys.length === 0) {
       return { success: false, error: 'No passkey is registered for that username.' };
     }
-    this.#startSession(user);
-    return { success: true };
+    return this.#startSession(user);
   }
 
   resetPassword(username: string, newPassword: string): AuthResult {
@@ -230,7 +262,15 @@ export class AuthService {
       return { success: false, error: 'No account found with that username.' };
     }
     users[idx] = { ...users[idx], passwordHash: newPassword };
-    this.#saveUsers(users);
+    if (!this.#saveUsers(users)) {
+      return {
+        success: false,
+        error: 'Could not save your password. Check browser storage and try again.',
+      };
+    }
+    if (this.#currentUser()?.id === users[idx].id) {
+      this.#currentUser.set(users[idx]);
+    }
     return { success: true };
   }
 
@@ -243,13 +283,19 @@ export class AuthService {
     return this.#getUsers().find((u) => u.username.toLowerCase() === normalizedUsername);
   }
 
-  #startSession(user: User): void {
+  #startSession(user: User): AuthResult {
     const session: AuthSession = {
       userId: user.id,
       token: MockDataService.uid(),
       expiresAt: Date.now() + 7 * 86_400_000, // 7 days
     };
-    this.#storage.set(SESSION_KEY, session);
+    if (!this.#storage.set(SESSION_KEY, session)) {
+      return {
+        success: false,
+        error: 'Could not save your session. Check browser storage and try again.',
+      };
+    }
     this.#currentUser.set(user);
+    return { success: true };
   }
 }

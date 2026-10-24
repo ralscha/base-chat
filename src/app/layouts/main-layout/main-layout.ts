@@ -9,7 +9,14 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
+import {
+  RouterOutlet,
+  RouterLink,
+  RouterLinkActive,
+  Router,
+  NavigationEnd,
+  PRIMARY_OUTLET,
+} from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { filter } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -67,8 +74,18 @@ export class MainLayoutComponent implements OnInit {
       if (name.toLowerCase().includes(q)) {
         return true;
       }
-      // Also search message text
-      return this.chat.getMessages(c.id).some((m) => m.text.toLowerCase().includes(q));
+      return this.chat
+        .getMessages(c.id)
+        .some((message) =>
+          [
+            message.text,
+            message.checklist?.title ?? '',
+            ...(message.checklist?.items.map((item) => item.text) ?? []),
+          ]
+            .join(' ')
+            .toLowerCase()
+            .includes(q),
+        );
     });
   });
 
@@ -115,13 +132,6 @@ export class MainLayoutComponent implements OnInit {
   ngOnInit(): void {
     void this.#notifications.requestPermission();
 
-    // Restore search query from URL on load
-    const parsedUrl = this.#router.parseUrl(this.#router.url);
-    const q = parsedUrl.queryParams['q'] as string | undefined;
-    if (q) {
-      this.searchQuery.set(q);
-    }
-
     const users = new Set(this.contacts.myContacts().map((contact) => contact.userId));
     this.chat.conversations().forEach((conversation) => {
       const partnerId = this.chat.getOtherParticipantId(conversation);
@@ -142,11 +152,12 @@ export class MainLayoutComponent implements OnInit {
   }
 
   #updateActiveChat(url: string): void {
-    const match = url.match(/\/conversations\/([^/?]+)/);
-    this.activeChatId.set(match ? match[1] : null);
-    // On mobile, sidebar is only visible at bare /conversations route
-    const isSidebarRoute = /^\/conversations(\?.*)?$/.test(url);
-    this.showSidebarOnMobile.set(isSidebarRoute);
+    const parsedUrl = this.#router.parseUrl(url);
+    const segments = parsedUrl.root.children[PRIMARY_OUTLET]?.segments ?? [];
+    const isConversations = segments[0]?.path === 'conversations';
+    this.activeChatId.set(isConversations && segments.length === 2 ? segments[1].path : null);
+    this.showSidebarOnMobile.set(isConversations && segments.length === 1);
+    this.searchQuery.set(parsedUrl.queryParamMap.get('q') ?? '');
   }
 
   protected getConversationPartner(convId: string) {

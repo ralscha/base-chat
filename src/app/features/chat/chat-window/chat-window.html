@@ -70,11 +70,24 @@
         <p class="text-center text-base-content/40 text-sm mt-10">No messages yet. Say hello!</p>
       }
       @for (msg of messages(); track msg.id) {
-        <app-message-bubble
-          [message]="msg"
-          [isMine]="isMine(msg.senderId)"
-          (deleteMessage)="deleteMessage($event)"
-        />
+        <article
+          [id]="'message-' + msg.id"
+          [attr.data-message-id]="msg.id"
+          tabindex="-1"
+          class="rounded-lg outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+          [attr.aria-label]="
+            'Message from ' + (isMine(msg.senderId) ? 'you' : partner()!.displayName)
+          "
+        >
+          <app-message-bubble
+            [message]="msg"
+            [isMine]="isMine(msg.senderId)"
+            [partnerName]="partner()!.displayName"
+            (deleteMessage)="deleteMessage($event)"
+            (reply)="startReply($event)"
+            (jumpToMessage)="jumpToMessage($event)"
+          />
+        </article>
       }
 
       <!-- Typing indicator -->
@@ -109,7 +122,47 @@
         </div>
       }
       @if (composerError()) {
-        <div class="alert alert-error py-2 mb-2 text-sm">{{ composerError() }}</div>
+        <div role="alert" class="alert alert-error py-2 mb-2 text-sm">{{ composerError() }}</div>
+      }
+      @if (imageLoading()) {
+        <p role="status" class="text-sm text-base-content/60 mb-2">Loading image…</p>
+      }
+
+      @if (showChecklistComposer()) {
+        <app-checklist-composer
+          [conversationId]="conversationId()"
+          [blocked]="isBlocked()"
+          (canceled)="closeChecklistComposer()"
+          (sent)="closeChecklistComposer()"
+        />
+      }
+
+      @if (replyToId()) {
+        <div
+          class="flex items-center gap-2 border-l-4 border-primary bg-base-200 rounded-r-lg p-2 mb-2"
+          role="status"
+        >
+          <div class="flex-1 min-w-0 text-sm">
+            @if (replyTarget(); as original) {
+              <p class="font-medium">
+                Replying to {{ isMine(original.senderId) ? 'yourself' : partner()!.displayName }}
+              </p>
+              <p class="line-clamp-2 wrap-anywhere text-base-content/60">{{ preview(original) }}</p>
+            } @else {
+              <p class="text-base-content/60">
+                Original message unavailable. Cancel this reply to send a new message.
+              </p>
+            }
+          </div>
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm btn-circle shrink-0"
+            aria-label="Cancel reply"
+            (click)="cancelReply()"
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
       }
 
       <!-- Staged image preview -->
@@ -144,7 +197,31 @@
         </div>
       }
 
-      <div class="flex items-end gap-2">
+      <div class="flex items-end gap-1 sm:gap-2">
+        <button
+          type="button"
+          class="btn btn-ghost btn-circle btn-sm shrink-0 text-base-content/60 hover:text-base-content"
+          aria-label="Create checklist"
+          [attr.aria-expanded]="showChecklistComposer()"
+          [disabled]="isBlocked()"
+          (click)="toggleChecklistComposer()"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="m3 6 1 1 2-2m-3 7 1 1 2-2m-3 7 1 1 2-2M10 6h11M10 12h11M10 18h11"
+            />
+          </svg>
+        </button>
         <!-- Attach image -->
         <button
           type="button"
@@ -203,7 +280,9 @@
         </div>
 
         <textarea
-          class="textarea flex-1 resize-none text-sm min-h-[42px] max-h-32 leading-snug border border-base-300 focus:border-primary focus:outline-none"
+          #messageInput
+          aria-label="Message"
+          class="textarea flex-1 min-w-0 resize-none text-sm min-h-[42px] max-h-32 leading-snug border border-base-300 focus:border-primary focus:outline-none"
           [placeholder]="isBlocked() ? 'This contact is blocked' : 'Type a message…'"
           rows="1"
           [value]="messageText()"
@@ -224,7 +303,7 @@
 
         <button
           class="btn btn-primary btn-circle shrink-0"
-          [disabled]="isBlocked() || (!messageText().trim() && !stagedImage())"
+          [disabled]="isBlocked() || imageLoading() || (!messageText().trim() && !stagedImage())"
           (click)="send()"
           aria-label="Send message"
         >

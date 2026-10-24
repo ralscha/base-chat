@@ -1,6 +1,12 @@
 import { OnDestroy, Service, computed, inject, signal } from '@angular/core';
 import { Conversation } from '../models/conversation.model';
-import { Message } from '../models/message.model';
+import {
+  MAX_CHECKLIST_ITEM_LENGTH,
+  MAX_CHECKLIST_ITEMS,
+  MAX_CHECKLIST_TITLE_LENGTH,
+  Message,
+  MessageChecklist,
+} from '../models/message.model';
 import { AuthService } from './auth.service';
 import { ContactsService } from './contacts.service';
 import { MockDataService } from './mock-data.service';
@@ -29,6 +35,20 @@ export class ChatService implements OnDestroy {
   readonly #partnerTyping = signal<Record<string, boolean>>({});
   readonly #typingTimers = new Map<string, ReturnType<typeof setTimeout>>();
   readonly #statusTimers = new Set<ReturnType<typeof setTimeout>>();
+  readonly #latestVisibleMessages = computed(() => {
+    const me = this.#auth.currentUser()?.id;
+    const latest = new Map<string, Message>();
+    for (const message of this.#messages()) {
+      if (message.deletedBySender && message.senderId === me) {
+        continue;
+      }
+      const previous = latest.get(message.conversationId);
+      if (!previous || message.timestamp >= previous.timestamp) {
+        latest.set(message.conversationId, message);
+      }
+    }
+    return latest;
+  });
 
   readonly conversations = computed(() => {
     const me = this.#auth.currentUser()?.id;
@@ -40,6 +60,7 @@ export class ChatService implements OnDestroy {
         (conversation) =>
           conversation.participantIds.includes(me) && !conversation.deletedBy.includes(me),
       )
+      .map((conversation) => this.#withVisiblePreview(conversation))
       .sort((a, b) => b.lastMessageAt - a.lastMessageAt);
   });
 
@@ -72,8 +93,36 @@ export class ChatService implements OnDestroy {
     return this.#storage.set(CONVERSATIONS_KEY, this.#conversations());
   }
 
-  #saveMessages(): boolean {
-    return this.#storage.set(MESSAGES_KEY, this.#messages());
+  #updateMessages(update: (messages: Message[]) => Message[]): boolean {
+    const messages = update(this.#messages());
+    if (!this.#storage.set(MESSAGES_KEY, messages)) {
+      return false;
+    }
+    this.#messages.set(messages);
+    return true;
+  }
+
+  #commitState(conversations: Conversation[], messages: Message[]): boolean {
+    if (!this.#storage.set(MESSAGES_KEY, messages)) {
+      return false;
+    }
+    if (!this.#storage.set(CONVERSATIONS_KEY, conversations)) {
+      this.#storage.set(MESSAGES_KEY, this.#messages());
+      return false;
+    }
+    this.#messages.set(messages);
+    this.#conversations.set(conversations);
+    return true;
+  }
+
+  #withVisiblePreview(conversation: Conversation): Conversation {
+    const latest = this.#latestVisibleMessages().get(conversation.id);
+    return {
+      ...conversation,
+      lastMessage: latest ? this.#messagePreview(latest) : '',
+      lastMessageAt: latest?.timestamp ?? conversation.lastMessageAt,
+      lastMessageSenderId: latest?.senderId ?? conversation.lastMessageSenderId,
+    };
   }
 
   getMessages(conversationId: string): Message[] {
@@ -90,17 +139,26 @@ export class ChatService implements OnDestroy {
       .sort((a, b) => a.timestamp - b.timestamp);
   }
 
+  getReplyTarget(message: Message): Message | undefined {
+    const messages = this.getMessages(message.conversationId);
+    const visibleMessage = messages.find((candidate) => candidate.id === message.id);
+    return visibleMessage?.replyToId
+      ? messages.find((candidate) => candidate.id === visibleMessage.replyToId)
+      : undefined;
+  }
+
   getConversation(id: string): Conversation | undefined {
     const me = this.#auth.currentUser()?.id;
     if (!me) {
       return undefined;
     }
-    return this.#conversations().find(
+    const conversation = this.#conversations().find(
       (conversation) =>
         conversation.id === id &&
         conversation.participantIds.includes(me) &&
         !conversation.deletedBy.includes(me),
     );
+    return conversation ? this.#withVisiblePreview(conversation) : undefined;
   }
 
   getOrCreateConversation(otherUserId: string): Conversation | null {
@@ -136,23 +194,79 @@ export class ChatService implements OnDestroy {
       unreadCounts: { [me]: 0, [otherUserId]: 0 },
       deletedBy: [],
     };
-    this.#conversations.update((list) => [conversation, ...list]);
-    this.#saveConversations();
+    const conversations = [conversation, ...this.#conversations()];
+    if (!this.#storage.set(CONVERSATIONS_KEY, conversations)) {
+      return null;
+    }
+    this.#conversations.set(conversations);
     return conversation;
   }
 
-  sendMessage(conversationId: string, text: string, imageDataUrl?: string): ChatActionResult {
-    const me = this.#auth.currentUser()?.id;
-    const conversation = this.getConversation(conversationId);
+  sendMessage(
+    conversationId: string,
+    text: string,
+    imageDataUrl?: string,
+    replyToId?: string,
+  ): ChatActionResult {
     const trimmedText = text.trim();
-    if (!me || !conversation) {
-      return { success: false, error: 'Conversation not found.' };
-    }
     if (!trimmedText && !imageDataUrl) {
       return { success: false, error: 'Enter a message or attach an image.' };
     }
+    return this.#sendContent(conversationId, {
+      text: trimmedText,
+      ...(imageDataUrl ? { imageDataUrl } : {}),
+      ...(replyToId !== undefined ? { replyToId } : {}),
+    });
+  }
+
+  sendChecklist(conversationId: string, title: string, items: string[]): ChatActionResult {
+    const trimmedTitle = title.trim();
+    const trimmedItems = items.map((item) => item.trim());
+    if (!trimmedTitle || trimmedTitle.length > MAX_CHECKLIST_TITLE_LENGTH) {
+      return {
+        success: false,
+        error: `Enter a checklist title of 1–${MAX_CHECKLIST_TITLE_LENGTH} characters.`,
+      };
+    }
+    if (trimmedItems.length === 0 || trimmedItems.length > MAX_CHECKLIST_ITEMS) {
+      return { success: false, error: `Add between 1 and ${MAX_CHECKLIST_ITEMS} items.` };
+    }
+    if (trimmedItems.some((item) => !item || item.length > MAX_CHECKLIST_ITEM_LENGTH)) {
+      return {
+        success: false,
+        error: `Each item must contain 1–${MAX_CHECKLIST_ITEM_LENGTH} characters.`,
+      };
+    }
+    return this.#sendContent(conversationId, {
+      text: '',
+      checklist: {
+        title: trimmedTitle,
+        items: trimmedItems.map((text) => ({
+          id: MockDataService.uid(),
+          text,
+          completed: false,
+        })),
+      },
+    });
+  }
+
+  #sendContent(
+    conversationId: string,
+    content: Pick<Message, 'text' | 'imageDataUrl' | 'replyToId' | 'checklist'>,
+  ): ChatActionResult {
+    const me = this.#auth.currentUser()?.id;
+    const conversation = this.getConversation(conversationId);
+    if (!me || !conversation) {
+      return { success: false, error: 'Conversation not found.' };
+    }
     if (this.isConversationBlocked(conversationId)) {
       return { success: false, error: 'Unblock this contact before sending a message.' };
+    }
+    if (
+      content.replyToId !== undefined &&
+      !this.getMessages(conversationId).some((message) => message.id === content.replyToId)
+    ) {
+      return { success: false, error: 'The message you are replying to is no longer available.' };
     }
 
     const recipientId = this.getOtherParticipantId(conversation);
@@ -160,20 +274,13 @@ export class ChatService implements OnDestroy {
       id: MockDataService.uid(),
       conversationId,
       senderId: me,
-      text: trimmedText,
+      ...content,
       timestamp: Date.now(),
       status: 'sent',
       deletedBySender: false,
-      ...(imageDataUrl ? { imageDataUrl } : {}),
     };
-    const previousMessages = this.#messages();
-    this.#messages.set([...previousMessages, message]);
-    if (!this.#saveMessages()) {
-      this.#messages.set(previousMessages);
-      return { success: false, error: 'Browser storage is full. Remove an attachment and retry.' };
-    }
-
-    const conversationSaved = this.#updateConversation(conversationId, {
+    const updatedConversation: Conversation = {
+      ...conversation,
       lastMessage: this.#messagePreview(message),
       lastMessageAt: message.timestamp,
       lastMessageSenderId: me,
@@ -182,14 +289,103 @@ export class ChatService implements OnDestroy {
         [recipientId]: (conversation.unreadCounts[recipientId] ?? 0) + 1,
       },
       deletedBy: conversation.deletedBy.filter((id) => id !== recipientId),
-    });
-    if (!conversationSaved) {
-      this.#messages.set(previousMessages);
-      this.#saveMessages();
-      return { success: false, error: 'Could not save the conversation.' };
+    };
+    if (
+      !this.#commitState(
+        this.#conversations().map((item) =>
+          item.id === conversationId ? updatedConversation : item,
+        ),
+        [...this.#messages(), message],
+      )
+    ) {
+      return { success: false, error: 'Could not save the message. Browser storage may be full.' };
     }
 
     this.#scheduleStatusUpdate(message.id, 'delivered', 800);
+    return { success: true };
+  }
+
+  toggleChecklistItem(messageId: string, itemId: string): ChatActionResult {
+    return this.#updateChecklist(messageId, (checklist) => {
+      if (!checklist.items.some((item) => item.id === itemId)) {
+        return { error: 'Checklist item not found.' };
+      }
+      return {
+        checklist: {
+          ...checklist,
+          items: checklist.items.map((item) =>
+            item.id === itemId ? { ...item, completed: !item.completed } : item,
+          ),
+        },
+      };
+    });
+  }
+
+  addChecklistItem(messageId: string, text: string): ChatActionResult {
+    const trimmedText = text.trim();
+    if (!trimmedText || trimmedText.length > MAX_CHECKLIST_ITEM_LENGTH) {
+      return {
+        success: false,
+        error: `Enter an item of 1–${MAX_CHECKLIST_ITEM_LENGTH} characters.`,
+      };
+    }
+    return this.#updateChecklist(messageId, (checklist) => {
+      if (checklist.items.length >= MAX_CHECKLIST_ITEMS) {
+        return { error: `A checklist can contain up to ${MAX_CHECKLIST_ITEMS} items.` };
+      }
+      return {
+        checklist: {
+          ...checklist,
+          items: [
+            ...checklist.items,
+            { id: MockDataService.uid(), text: trimmedText, completed: false },
+          ],
+        },
+      };
+    });
+  }
+
+  removeChecklistItem(messageId: string, itemId: string): ChatActionResult {
+    return this.#updateChecklist(messageId, (checklist) => {
+      if (!checklist.items.some((item) => item.id === itemId)) {
+        return { error: 'Checklist item not found.' };
+      }
+      return {
+        checklist: { ...checklist, items: checklist.items.filter((item) => item.id !== itemId) },
+      };
+    });
+  }
+
+  #updateChecklist(
+    messageId: string,
+    update: (checklist: MessageChecklist) => { checklist: MessageChecklist } | { error: string },
+  ): ChatActionResult {
+    const message = this.#messages().find((candidate) => candidate.id === messageId);
+    if (
+      !message?.checklist ||
+      !this.getMessages(message.conversationId).some((candidate) => candidate.id === messageId)
+    ) {
+      return { success: false, error: 'Checklist not found.' };
+    }
+    if (this.isConversationBlocked(message.conversationId)) {
+      return { success: false, error: 'Unblock this contact before editing a checklist.' };
+    }
+    const result = update(message.checklist);
+    if ('error' in result) {
+      return { success: false, error: result.error };
+    }
+    if (
+      !this.#updateMessages((messages) =>
+        messages.map((candidate) =>
+          candidate.id === messageId ? { ...candidate, checklist: result.checklist } : candidate,
+        ),
+      )
+    ) {
+      return {
+        success: false,
+        error: 'Could not save the checklist. Browser storage may be full.',
+      };
+    }
     return { success: true };
   }
 
@@ -202,10 +398,14 @@ export class ChatService implements OnDestroy {
   }
 
   #updateMessageStatus(messageId: string, status: Message['status']): void {
-    this.#messages.update((messages) =>
+    const rank = { sent: 0, delivered: 1, read: 2 };
+    const target = this.#messages().find((message) => message.id === messageId);
+    if (!target || rank[target.status] >= rank[status]) {
+      return;
+    }
+    this.#updateMessages((messages) =>
       messages.map((message) => (message.id === messageId ? { ...message, status } : message)),
     );
-    this.#saveMessages();
   }
 
   deleteMessage(messageId: string): void {
@@ -219,30 +419,17 @@ export class ChatService implements OnDestroy {
     ) {
       return;
     }
-    this.#messages.update((messages) =>
+    this.#updateMessages((messages) =>
       messages.map((candidate) =>
         candidate.id === messageId ? { ...candidate, deletedBySender: true } : candidate,
       ),
     );
-    this.#saveMessages();
-    this.#refreshConversationPreview(message.conversationId);
-  }
-
-  #refreshConversationPreview(conversationId: string): void {
-    const conversation = this.getConversation(conversationId);
-    if (!conversation) {
-      return;
-    }
-    const messages = this.getMessages(conversationId);
-    const latest = messages[messages.length - 1];
-    this.#updateConversation(conversationId, {
-      lastMessage: latest ? this.#messagePreview(latest) : '',
-      lastMessageAt: latest?.timestamp ?? conversation.lastMessageAt,
-      lastMessageSenderId: latest?.senderId ?? conversation.lastMessageSenderId,
-    });
   }
 
   #messagePreview(message: Message): string {
+    if (message.checklist) {
+      return `Checklist: ${message.checklist.title}`;
+    }
     return message.text || (message.imageDataUrl ? '📷 Image' : '');
   }
 
@@ -263,11 +450,24 @@ export class ChatService implements OnDestroy {
     if (!me || !conversation) {
       return;
     }
-    this.#updateConversation(conversationId, {
-      unreadCounts: { ...conversation.unreadCounts, [me]: 0 },
-    });
-    this.#messages.update((messages) =>
-      messages.map((message) =>
+    if (
+      (conversation.unreadCounts[me] ?? 0) === 0 &&
+      !this.#messages().some(
+        (message) =>
+          message.conversationId === conversationId &&
+          message.senderId !== me &&
+          message.status !== 'read',
+      )
+    ) {
+      return;
+    }
+    this.#commitState(
+      this.#conversations().map((item) =>
+        item.id === conversationId
+          ? { ...item, unreadCounts: { ...item.unreadCounts, [me]: 0 } }
+          : item,
+      ),
+      this.#messages().map((message) =>
         message.conversationId === conversationId &&
         message.senderId !== me &&
         message.status !== 'read'
@@ -275,7 +475,6 @@ export class ChatService implements OnDestroy {
           : message,
       ),
     );
-    this.#saveMessages();
   }
 
   getOtherParticipantId(conversation: Conversation): string {
@@ -315,7 +514,9 @@ export class ChatService implements OnDestroy {
   }
 
   isPartnerTyping(conversationId: string): boolean {
-    return this.#partnerTyping()[conversationId] ?? false;
+    return (
+      !!this.getConversation(conversationId) && (this.#partnerTyping()[conversationId] ?? false)
+    );
   }
 
   addReaction(messageId: string, emoji: string): void {
@@ -331,7 +532,7 @@ export class ChatService implements OnDestroy {
     ) {
       return;
     }
-    this.#messages.update((messages) =>
+    this.#updateMessages((messages) =>
       messages.map((candidate) => {
         if (candidate.id !== messageId) {
           return candidate;
@@ -351,7 +552,6 @@ export class ChatService implements OnDestroy {
         return { ...candidate, reactions };
       }),
     );
-    this.#saveMessages();
   }
 
   totalUnread(): number {
@@ -361,37 +561,45 @@ export class ChatService implements OnDestroy {
     );
   }
 
-  deleteUserData(userId: string): void {
+  deleteUserData(userId: string): boolean {
+    if (userId !== this.#auth.currentUser()?.id) {
+      return false;
+    }
     const conversationIds = new Set(
       this.#conversations()
         .filter((conversation) => conversation.participantIds.includes(userId))
         .map((conversation) => conversation.id),
     );
-    this.#conversations.update((conversations) =>
-      conversations.filter((conversation) => !conversationIds.has(conversation.id)),
-    );
-    this.#messages.update((messages) =>
-      messages.filter((message) => !conversationIds.has(message.conversationId)),
-    );
+    if (
+      !this.#commitState(
+        this.#conversations().filter((conversation) => !conversationIds.has(conversation.id)),
+        this.#messages().filter((message) => !conversationIds.has(message.conversationId)),
+      )
+    ) {
+      return false;
+    }
     this.#partnerTyping.update((status) =>
       Object.fromEntries(Object.entries(status).filter(([id]) => !conversationIds.has(id))),
     );
-    this.#saveConversations();
-    this.#saveMessages();
+    for (const id of conversationIds) {
+      const timer = this.#typingTimers.get(id);
+      if (timer !== undefined) {
+        clearTimeout(timer);
+        this.#typingTimers.delete(id);
+      }
+    }
+    return true;
   }
 
   #updateConversation(id: string, updates: Partial<Conversation>): boolean {
-    const previous = this.#conversations();
-    this.#conversations.set(
-      previous.map((conversation) =>
-        conversation.id === id ? { ...conversation, ...updates } : conversation,
-      ),
+    const conversations = this.#conversations().map((conversation) =>
+      conversation.id === id ? { ...conversation, ...updates } : conversation,
     );
-    if (this.#saveConversations()) {
-      return true;
+    if (!this.#storage.set(CONVERSATIONS_KEY, conversations)) {
+      return false;
     }
-    this.#conversations.set(previous);
-    return false;
+    this.#conversations.set(conversations);
+    return true;
   }
 
   ngOnDestroy(): void {

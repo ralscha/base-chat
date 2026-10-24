@@ -41,6 +41,7 @@
         type="text"
         class="grow"
         placeholder="Search contacts…"
+        aria-label="Search contacts"
         [value]="searchQuery()"
         (input)="updateSearchQuery($event)"
       />
@@ -48,6 +49,9 @@
   </div>
 
   <!-- Contact list -->
+  @if (actionError()) {
+    <div role="alert" class="alert alert-error text-sm py-2 m-4">{{ actionError() }}</div>
+  }
   <div class="flex-1 overflow-y-auto overflow-x-hidden">
     @if (filtered().length === 0) {
       <div
@@ -98,6 +102,7 @@
             <button
               class="btn btn-ghost btn-circle btn-sm text-primary tooltip tooltip-bottom"
               data-tip="Open chat"
+              [attr.aria-label]="'Chat with ' + contact.displayName"
               (click)="openChat(contact)"
             >
               <svg
@@ -119,6 +124,7 @@
           <button
             class="btn btn-ghost btn-circle btn-sm tooltip tooltip-bottom"
             [attr.data-tip]="contact.blocked ? 'Unblock' : 'Block'"
+            [attr.aria-label]="(contact.blocked ? 'Unblock ' : 'Block ') + contact.displayName"
             [class.text-warning]="!contact.blocked"
             [class.text-success]="contact.blocked"
             (click)="toggleBlock(contact)"
@@ -158,6 +164,7 @@
           <button
             class="btn btn-ghost btn-circle btn-sm text-error tooltip tooltip-bottom"
             data-tip="Remove"
+            [attr.aria-label]="'Remove ' + contact.displayName"
             (click)="removeContact(contact)"
           >
             <svg

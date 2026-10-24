@@ -1,6 +1,6 @@
 import { Service, signal, computed, inject } from '@angular/core';
 import { StorageService } from './storage.service';
-import { AuthService } from './auth.service';
+import { AuthResult, AuthService } from './auth.service';
 import { Contact } from '../models/contact.model';
 import { MockDataService } from './mock-data.service';
 import { User } from '../models/user.model';
@@ -25,11 +25,16 @@ export class ContactsService {
   }
 
   #load(): void {
-    this.#contacts.set(this.#storage.get<Contact[]>(CONTACTS_KEY) ?? []);
+    const contacts = this.#storage.get<Contact[]>(CONTACTS_KEY);
+    this.#contacts.set(Array.isArray(contacts) ? contacts : []);
   }
 
-  #save(): void {
-    this.#storage.set(CONTACTS_KEY, this.#contacts());
+  #save(contacts: Contact[]): boolean {
+    if (!this.#storage.set(CONTACTS_KEY, contacts)) {
+      return false;
+    }
+    this.#contacts.set(contacts);
+    return true;
   }
 
   search(query: string): Contact[] {
@@ -41,13 +46,17 @@ export class ContactsService {
     );
   }
 
-  addContact(user: User): { success: boolean; error?: string } {
+  addContact(user: User): AuthResult {
     const me = this.#auth.currentUser()?.id;
     if (!me) {
       return { success: false, error: 'Not authenticated.' };
     }
     if (user.id === me) {
       return { success: false, error: 'Cannot add yourself.' };
+    }
+    const savedUser = this.#auth.getUserById(user.id);
+    if (!savedUser) {
+      return { success: false, error: 'Account not found.' };
     }
     const alreadyExists = this.#contacts().some((c) => c.ownerId === me && c.userId === user.id);
     if (alreadyExists) {
@@ -57,41 +66,41 @@ export class ContactsService {
       id: MockDataService.uid(),
       ownerId: me,
       userId: user.id,
-      displayName: user.displayName,
-      avatarInitials: user.avatarInitials,
-      avatarColor: user.avatarColor,
+      displayName: savedUser.displayName,
+      avatarInitials: savedUser.avatarInitials,
+      avatarColor: savedUser.avatarColor,
       blocked: false,
       addedAt: Date.now(),
     };
-    this.#contacts.update((list) => [...list, contact]);
-    this.#save();
-    return { success: true };
+    return this.#mutationResult(this.#save([...this.#contacts(), contact]));
   }
 
-  removeContact(contactId: string): void {
+  removeContact(contactId: string): AuthResult {
     const me = this.#auth.currentUser()?.id;
     if (!me) {
-      return;
+      return { success: false, error: 'Not authenticated.' };
     }
-    this.#contacts.update((list) =>
-      list.filter((contact) => contact.id !== contactId || contact.ownerId !== me),
-    );
-    this.#save();
-  }
-
-  toggleBlock(contactId: string): void {
-    const me = this.#auth.currentUser()?.id;
-    if (!me) {
-      return;
-    }
-    this.#contacts.update((list) =>
-      list.map((contact) =>
-        contact.id === contactId && contact.ownerId === me
-          ? { ...contact, blocked: !contact.blocked }
-          : contact,
+    return this.#mutationResult(
+      this.#save(
+        this.#contacts().filter((contact) => contact.id !== contactId || contact.ownerId !== me),
       ),
     );
-    this.#save();
+  }
+
+  toggleBlock(contactId: string): AuthResult {
+    const me = this.#auth.currentUser()?.id;
+    if (!me) {
+      return { success: false, error: 'Not authenticated.' };
+    }
+    return this.#mutationResult(
+      this.#save(
+        this.#contacts().map((contact) =>
+          contact.id === contactId && contact.ownerId === me
+            ? { ...contact, blocked: !contact.blocked }
+            : contact,
+        ),
+      ),
+    );
   }
 
   getContactByUserId(userId: string): Contact | undefined {
@@ -103,9 +112,9 @@ export class ContactsService {
     return this.getContactByUserId(userId)?.blocked ?? false;
   }
 
-  syncUser(user: User): void {
-    this.#contacts.update((list) =>
-      list.map((contact) =>
+  syncUser(user: User): boolean {
+    return this.#save(
+      this.#contacts().map((contact) =>
         contact.userId === user.id
           ? {
               ...contact,
@@ -116,13 +125,23 @@ export class ContactsService {
           : contact,
       ),
     );
-    this.#save();
   }
 
-  deleteUserData(userId: string): void {
-    this.#contacts.update((list) =>
-      list.filter((contact) => contact.ownerId !== userId && contact.userId !== userId),
+  deleteUserData(userId: string): boolean {
+    if (this.#auth.currentUser()?.id !== userId) {
+      return false;
+    }
+    return this.#save(
+      this.#contacts().filter((contact) => contact.ownerId !== userId && contact.userId !== userId),
     );
-    this.#save();
+  }
+
+  #mutationResult(success: boolean): AuthResult {
+    return success
+      ? { success: true }
+      : {
+          success: false,
+          error: 'Could not save your contacts. Check browser storage and try again.',
+        };
   }
 }

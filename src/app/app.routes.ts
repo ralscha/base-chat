@@ -66,6 +66,11 @@ export const routes: Routes = [
           import('./features/contacts/contacts').then((m) => m.ContactsComponent),
       },
       {
+        path: 'bookmarks',
+        loadComponent: () =>
+          import('./features/bookmarks/bookmarks').then((m) => m.BookmarksComponent),
+      },
+      {
         path: 'profile',
         loadComponent: () => import('./features/profile/profile').then((m) => m.ProfileComponent),
       },

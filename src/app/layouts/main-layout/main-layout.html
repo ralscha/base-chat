@@ -42,6 +42,7 @@
         @let partner = getConversationPartner(conv.id);
         <a
           [routerLink]="['/conversations', conv.id]"
+          queryParamsHandling="preserve"
           class="flex items-center gap-3 px-4 py-3 hover:bg-base-100 cursor-pointer transition-colors border-b border-base-200"
           routerLinkActive="bg-base-100"
         >
@@ -100,6 +101,23 @@
         <span class="text-xs font-medium">Contacts</span>
       </a>
       <a
+        routerLink="/bookmarks"
+        routerLinkActive="bg-base-200 text-primary"
+        class="flex flex-col items-center gap-1 flex-1 py-3 text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors"
+      >
+        <svg
+          class="h-5 w-5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          aria-hidden="true"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 4h12v17l-6-4-6 4V4Z" />
+        </svg>
+        <span class="text-xs font-medium">Saved</span>
+      </a>
+      <a
         routerLink="/profile"
         routerLinkActive="bg-base-200 text-primary"
         class="flex flex-col items-center gap-1 flex-1 py-3 text-base-content/60 hover:bg-base-200 hover:text-base-content transition-colors"
@@ -154,6 +172,23 @@
     >
       <app-icon name="users" />
       <span class="text-xs">Contacts</span>
+    </a>
+    <a
+      routerLink="/bookmarks"
+      routerLinkActive="text-primary bg-base-200"
+      class="flex flex-col items-center justify-center gap-1 flex-1 text-base-content/60 hover:bg-base-200 transition-colors"
+    >
+      <svg
+        class="h-5 w-5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        aria-hidden="true"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 4h12v17l-6-4-6 4V4Z" />
+      </svg>
+      <span class="text-xs">Saved</span>
     </a>
     <a
       routerLink="/profile"

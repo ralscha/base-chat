@@ -1,0 +1,80 @@
+<section
+  class="w-80 max-w-full rounded-xl bg-base-100 text-base-content p-3 whitespace-normal"
+  [attr.aria-label]="'Shared checklist: ' + checklist().title"
+>
+  <p class="text-xs font-medium text-base-content/60 mb-1">Shared checklist</p>
+  <h3 class="font-semibold wrap-anywhere">{{ checklist().title }}</h3>
+  <p class="text-xs text-base-content/60 mt-1" role="status">
+    {{ completedCount() }} of {{ checklist().items.length }} completed
+  </p>
+  <progress
+    class="progress progress-primary w-full mt-2"
+    [value]="completedCount()"
+    [max]="checklist().items.length || 1"
+    aria-label="Checklist completion"
+  ></progress>
+
+  <ul class="space-y-1 mt-2">
+    @for (item of checklist().items; track item.id) {
+      <li class="flex items-start gap-2">
+        <label class="flex items-start gap-2 flex-1 min-w-0 py-1 cursor-pointer">
+          <input
+            type="checkbox"
+            class="checkbox checkbox-primary checkbox-sm mt-0.5 shrink-0"
+            [checked]="item.completed"
+            [disabled]="blocked()"
+            (change)="toggleItem(item.id, $event)"
+          />
+          <span
+            class="wrap-anywhere min-w-0"
+            [class.line-through]="item.completed"
+            [class.opacity-60]="item.completed"
+          >
+            {{ item.text }}
+          </span>
+        </label>
+        <button
+          type="button"
+          class="btn btn-ghost btn-xs btn-circle shrink-0"
+          [attr.aria-label]="'Remove item: ' + item.text"
+          [disabled]="blocked()"
+          (click)="removeItem(item.id)"
+        >
+          <span aria-hidden="true">×</span>
+        </button>
+      </li>
+    } @empty {
+      <li class="text-sm text-base-content/60 py-2">No items yet. Add the first one below.</li>
+    }
+  </ul>
+
+  @if (blocked()) {
+    <p class="text-xs text-base-content/60 mt-2">Unblock this contact to update the checklist.</p>
+  } @else if (checklist().items.length >= itemLimit) {
+    <p class="text-xs text-base-content/60 mt-2">
+      This checklist has reached its {{ itemLimit }} item limit.
+    </p>
+  }
+  <form class="flex items-center gap-2 mt-3" (submit)="addItem($event)">
+    <input
+      class="input input-sm flex-1 min-w-0"
+      type="text"
+      aria-label="New checklist item"
+      placeholder="Add an item"
+      [maxLength]="itemLengthLimit"
+      [value]="newItem()"
+      [disabled]="blocked() || checklist().items.length >= itemLimit"
+      (input)="updateNewItem($event)"
+    />
+    <button
+      type="submit"
+      class="btn btn-primary btn-sm"
+      [disabled]="blocked() || !newItem().trim() || checklist().items.length >= itemLimit"
+    >
+      Add
+    </button>
+  </form>
+  @if (error()) {
+    <p role="alert" class="text-error text-xs mt-2">{{ error() }}</p>
+  }
+</section>

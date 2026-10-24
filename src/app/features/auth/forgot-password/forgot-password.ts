@@ -22,7 +22,6 @@ export class ForgotPasswordComponent {
   protected attempted = signal(false);
   protected submitted = signal(false);
   protected error = signal('');
-  protected loading = signal(false);
 
   protected submit(event: Event): void {
     event.preventDefault();
@@ -30,18 +29,13 @@ export class ForgotPasswordComponent {
     if (this.forgotPasswordForm().invalid()) {
       return;
     }
-    this.loading.set(true);
     this.error.set('');
     const { username } = this.forgotPasswordModel();
-    // Mock: verify the username exists
-    setTimeout(() => {
-      this.loading.set(false);
-      const user = this.#auth.findUserByUsername(username);
-      if (!user) {
-        this.error.set('No account found with that username.');
-      } else {
-        this.submitted.set(true);
-      }
-    }, 600);
+    const user = this.#auth.findUserByUsername(username);
+    if (!user) {
+      this.error.set('No account found with that username.');
+    } else {
+      this.submitted.set(true);
+    }
   }
 }

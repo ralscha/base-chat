@@ -25,6 +25,7 @@ export class ContactsComponent {
   protected addUsername = signal('');
   protected addError = signal('');
   protected addSuccess = signal('');
+  protected actionError = signal('');
 
   protected filtered = computed(() => {
     return this.contacts.search(this.searchQuery());
@@ -46,11 +47,13 @@ export class ContactsComponent {
   }
 
   protected toggleBlock(contact: Contact): void {
-    this.contacts.toggleBlock(contact.id);
+    const result = this.contacts.toggleBlock(contact.id);
+    this.actionError.set(result.success ? '' : (result.error ?? 'Could not update contact.'));
   }
 
   protected removeContact(contact: Contact): void {
-    this.contacts.removeContact(contact.id);
+    const result = this.contacts.removeContact(contact.id);
+    this.actionError.set(result.success ? '' : (result.error ?? 'Could not remove contact.'));
   }
 
   protected openAddModal(): void {

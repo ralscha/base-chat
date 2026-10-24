@@ -19,8 +19,9 @@ const AVATAR_COLORS = [
 
 function initials(name: string): string {
   return name
-    .split(' ')
-    .map((p) => p[0])
+    .trim()
+    .split(/\s+/)
+    .map((part) => part.charAt(0))
     .join('')
     .toUpperCase()
     .slice(0, 2);
@@ -30,18 +31,18 @@ function uid(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
-function ts(daysAgo: number, hoursAgo = 0, minsAgo = 0): number {
-  return Date.now() - daysAgo * 86_400_000 - hoursAgo * 3_600_000 - minsAgo * 60_000;
-}
-
 @Service()
 export class MockDataService {
   readonly #storage = inject(StorageService);
 
   seed(): void {
-    if (this.#storage.get<boolean>(SEEDED_KEY)) {
+    if (this.#storage.get<boolean>(SEEDED_KEY) || this.#storage.get<User[]>('users') !== null) {
       return;
     }
+
+    const now = Date.now();
+    const ts = (daysAgo: number, hoursAgo = 0, minsAgo = 0): number =>
+      now - daysAgo * 86_400_000 - hoursAgo * 3_600_000 - minsAgo * 60_000;
 
     // ── Users ──────────────────────────────────────────────────────────────
     const users: User[] = [
@@ -167,8 +168,8 @@ export class MockDataService {
     const convAlice: Conversation = {
       id: 'conv_alice',
       participantIds: ['user_me', 'user_alice'],
-      lastMessage: 'See you tomorrow!',
-      lastMessageAt: ts(0, 1),
+      lastMessage: "Don't forget your umbrella 😄",
+      lastMessageAt: ts(0, 0, 30),
       lastMessageSenderId: 'user_alice',
       unreadCounts: { user_me: 2, user_alice: 0 },
       deletedBy: [],

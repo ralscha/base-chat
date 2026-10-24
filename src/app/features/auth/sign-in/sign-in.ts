@@ -24,9 +24,7 @@ export class SignInComponent {
 
   protected submitted = signal(false);
   protected error = signal('');
-  protected loading = signal(false);
   protected showPasskeyModal = signal(false);
-  protected passkeyLoading = signal(false);
 
   protected submit(event: Event): void {
     event.preventDefault();
@@ -34,11 +32,9 @@ export class SignInComponent {
     if (this.signInForm().invalid()) {
       return;
     }
-    this.loading.set(true);
     this.error.set('');
     const { username, password } = this.signInModel();
     const result = this.#auth.signIn(username, password);
-    this.loading.set(false);
     if (result.success) {
       this.#router.navigate(['/conversations']);
     } else {
@@ -58,23 +54,16 @@ export class SignInComponent {
       this.error.set('Enter your username before using passkey sign-in.');
       return;
     }
-    this.passkeyLoading.set(true);
-    setTimeout(() => {
-      this.passkeyLoading.set(false);
-      this.showPasskeyModal.set(false);
-      const result = this.#auth.passkeySignIn(username);
-      if (result.success) {
-        this.#router.navigate(['/conversations']);
-      } else {
-        this.error.set(result.error ?? 'Passkey authentication failed.');
-      }
-    }, 1200);
+    this.showPasskeyModal.set(false);
+    const result = this.#auth.passkeySignIn(username);
+    if (result.success) {
+      this.#router.navigate(['/conversations']);
+    } else {
+      this.error.set(result.error ?? 'Passkey authentication failed.');
+    }
   }
 
   protected cancelPasskey(): void {
-    if (this.passkeyLoading()) {
-      return;
-    }
     this.showPasskeyModal.set(false);
   }
 }

@@ -24,7 +24,11 @@ export class StorageService {
 
   set<T>(key: string, value: T): boolean {
     try {
-      localStorage.setItem(PREFIX + key, JSON.stringify(value));
+      const serialized = JSON.stringify(value);
+      if (serialized === undefined) {
+        return false;
+      }
+      localStorage.setItem(PREFIX + key, serialized);
       return true;
     } catch {
       return false;

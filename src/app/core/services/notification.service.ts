@@ -27,9 +27,17 @@ export class NotificationService {
   }
 
   show(title: string, options?: NotificationOptions): void {
-    if (!this.supported || Notification.permission !== 'granted') {
+    if (!this.supported) {
       return;
     }
-    new Notification(title, { icon: '/favicon.svg', ...options });
+    this.#permission.set(Notification.permission);
+    if (this.permission() !== 'granted') {
+      return;
+    }
+    try {
+      new Notification(title, { icon: '/favicon.svg', ...options });
+    } catch {
+      // Some browsers expose the API but require service-worker notifications.
+    }
   }
 }

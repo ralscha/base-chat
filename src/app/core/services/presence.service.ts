@@ -27,9 +27,9 @@ export class PresenceService implements OnDestroy {
           return current;
         }
         const updated = { ...current };
-        const flips = Math.floor(Math.random() * 2) + 1;
+        const flips = Math.min(ids.length, Math.floor(Math.random() * 2) + 1);
         for (let i = 0; i < flips; i++) {
-          const id = ids[Math.floor(Math.random() * ids.length)];
+          const [id] = ids.splice(Math.floor(Math.random() * ids.length), 1);
           updated[id] = !updated[id];
         }
         return updated;
@@ -38,14 +38,14 @@ export class PresenceService implements OnDestroy {
   }
 
   track(userId: string): void {
-    if (!userId || userId in this.#status()) {
+    if (!userId || Object.hasOwn(this.#status(), userId)) {
       return;
     }
     this.#status.update((status) => ({ ...status, [userId]: false }));
   }
 
   isOnline(userId: string): boolean {
-    return this.#status()[userId] ?? false;
+    return this.#status()[userId] === true;
   }
 
   ngOnDestroy(): void {

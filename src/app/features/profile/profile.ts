@@ -27,7 +27,7 @@ export class ProfileComponent {
   protected nameSaved = signal(false);
   protected nameError = signal('');
   protected hasNameChanges = computed(
-    () => this.nameValue().trim() !== (this.user()?.displayName ?? ''),
+    () => this.nameValue().trim() !== (this.user()?.displayName ?? '') || !!this.nameError(),
   );
   protected currentThemeLabel = computed(() =>
     this.themeService.theme() === 'dark' ? 'Dark mode' : 'Light mode',
@@ -50,11 +50,16 @@ export class ProfileComponent {
       this.nameSaved.set(false);
       return;
     }
-    if (name === (this.user()?.displayName ?? '')) {
+    if (name === (this.user()?.displayName ?? '') && !this.nameError()) {
       this.nameError.set('');
       return;
     }
-    this.#accountData.updateDisplayName(name);
+    const result = this.#accountData.updateDisplayName(name);
+    if (!result.success) {
+      this.nameError.set(result.error ?? 'Could not update your display name.');
+      this.nameSaved.set(false);
+      return;
+    }
     this.nameValue.set(name);
     this.nameError.set('');
     this.nameSaved.set(true);
@@ -116,7 +121,6 @@ export class ProfileComponent {
   // ── Passkeys ───────────────────────────────────────────────────────────
   protected showPasskeyModal = signal(false);
   protected passkeyName = signal('');
-  protected passkeyLoading = signal(false);
   protected passkeyError = signal('');
 
   protected openPasskeyModal(): void {
@@ -126,9 +130,6 @@ export class ProfileComponent {
   }
 
   protected closePasskeyModal(): void {
-    if (this.passkeyLoading()) {
-      return;
-    }
     this.showPasskeyModal.set(false);
   }
 
@@ -141,16 +142,12 @@ export class ProfileComponent {
       this.passkeyError.set('Please enter a name for this passkey.');
       return;
     }
-    this.passkeyLoading.set(true);
-    setTimeout(() => {
-      this.passkeyLoading.set(false);
-      const result = this.auth.passkeyRegister(this.passkeyName());
-      if (result.success) {
-        this.showPasskeyModal.set(false);
-      } else {
-        this.passkeyError.set(result.error ?? 'Could not register passkey.');
-      }
-    }, 1000);
+    const result = this.auth.passkeyRegister(this.passkeyName());
+    if (result.success) {
+      this.showPasskeyModal.set(false);
+    } else {
+      this.passkeyError.set(result.error ?? 'Could not register passkey.');
+    }
   }
 
   protected removePasskey(id: string): void {
@@ -160,13 +157,19 @@ export class ProfileComponent {
 
   // ── Danger zone ────────────────────────────────────────────────────────
   protected showDeleteModal = signal(false);
+  protected deleteError = signal('');
 
   protected confirmDeleteAccount(): void {
+    this.deleteError.set('');
     this.showDeleteModal.set(true);
   }
 
   protected doDeleteAccount(): void {
-    this.#accountData.deleteCurrentAccount();
+    const result = this.#accountData.deleteCurrentAccount();
+    if (!result.success) {
+      this.deleteError.set(result.error ?? 'Could not delete your account.');
+      return;
+    }
     this.#router.navigate(['/auth/sign-in']);
   }
 

@@ -1,0 +1,146 @@
+<header
+  class="flex h-16 items-center px-4 border-b border-primary/20 bg-primary text-primary-content shrink-0 shadow-sm"
+>
+  <h1 class="text-lg font-semibold">Bookmarks</h1>
+</header>
+
+<div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+  <p class="text-sm text-base-content/60">
+    Your saved messages, organized into personal collections. Only you can see your bookmarks.
+  </p>
+
+  <div class="flex flex-col sm:flex-row gap-3">
+    <label class="flex flex-col gap-1 flex-1 text-sm">
+      <span class="font-medium">Search bookmarks</span>
+      <input
+        type="search"
+        class="input w-full"
+        placeholder="Find a message, checklist, or contact"
+        [value]="search()"
+        (input)="updateSearch($event)"
+      />
+    </label>
+    <label class="flex flex-col gap-1 text-sm sm:w-52">
+      <span class="font-medium">Collection</span>
+      <select class="select w-full" (change)="updateCollection($event)">
+        <option value="" [selected]="collection() === ''">All collections</option>
+        @for (name of bookmarks.collections(); track name) {
+          <option [value]="name" [selected]="collection() === name">{{ name }}</option>
+        }
+      </select>
+    </label>
+  </div>
+
+  <form class="flex flex-wrap items-end gap-2" (submit)="createCollection($event)">
+    <label class="flex flex-col gap-1 text-sm flex-1 min-w-40">
+      <span class="font-medium">New collection</span>
+      <input
+        type="text"
+        class="input input-sm w-full"
+        maxlength="60"
+        placeholder="Ideas, Travel, Recipes…"
+        [value]="newCollection()"
+        (input)="updateNewCollection($event)"
+      />
+    </label>
+    <button type="submit" class="btn btn-sm btn-outline" [disabled]="!newCollection().trim()">
+      Create collection
+    </button>
+  </form>
+
+  @if (error()) {
+    <p role="alert" class="alert alert-error text-sm">{{ error() }}</p>
+  }
+  <p role="status" class="text-sm text-base-content/70">{{ status() }}</p>
+
+  <section aria-label="Saved messages" class="space-y-3">
+    @if (filtered().length === 0) {
+      <div class="rounded-box bg-base-100 border border-base-300 p-8 text-center">
+        @if (bookmarks.bookmarks().length === 0) {
+          <h2 class="font-semibold">Keep useful messages close</h2>
+          <p class="mt-2 text-sm text-base-content/60">
+            Open a message's actions in a conversation and choose Save message.
+          </p>
+          <a routerLink="/conversations" class="btn btn-primary btn-sm mt-4">Open chats</a>
+        } @else {
+          <p class="text-sm text-base-content/60">No bookmarks match this search or collection.</p>
+        }
+      </div>
+    }
+    @for (bookmark of filtered(); track bookmark.messageId) {
+      <article class="rounded-box bg-base-100 border border-base-300 p-4 space-y-3">
+        @if (bookmark.message; as message) {
+          <div class="flex flex-wrap justify-between gap-2 text-sm">
+            <p class="font-medium">{{ senderName(bookmark) }} · {{ partnerName(bookmark) }}</p>
+            <time
+              class="text-xs text-base-content/50"
+              [attr.datetime]="message.timestamp | date: 'yyyy-MM-ddTHH:mm:ss'"
+            >
+              {{ message.timestamp | date: 'medium' }}
+            </time>
+          </div>
+          @if (message.text) {
+            <p class="text-sm whitespace-pre-wrap wrap-anywhere">{{ message.text }}</p>
+          }
+          @if (message.checklist; as checklist) {
+            <div class="space-y-2">
+              <h2 class="font-semibold wrap-anywhere">{{ checklist.title }}</h2>
+              <p class="text-xs text-base-content/60">
+                {{ completedCount(bookmark) }} of {{ checklist.items.length }} complete
+              </p>
+              <ul class="space-y-1 text-sm">
+                @for (item of checklist.items; track item.id) {
+                  <li class="flex gap-2 wrap-anywhere">
+                    <span
+                      class="shrink-0"
+                      [attr.aria-label]="item.completed ? 'Complete' : 'Incomplete'"
+                      >{{ item.completed ? '☑' : '☐' }}</span
+                    >
+                    <span
+                      class="min-w-0"
+                      [class.line-through]="item.completed"
+                      [class.opacity-60]="item.completed"
+                      >{{ item.text }}</span
+                    >
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+          @if (message.imageDataUrl) {
+            <img
+              [src]="message.imageDataUrl"
+              alt="Saved message attachment"
+              class="max-h-52 max-w-full rounded-lg"
+            />
+          }
+          <a
+            class="link link-primary text-sm"
+            [routerLink]="['/conversations', bookmark.conversationId]"
+            [fragment]="'message-' + bookmark.messageId"
+            >View in conversation</a
+          >
+        } @else {
+          <p class="font-medium text-sm">Original message unavailable</p>
+          <p class="text-sm text-base-content/60">
+            The message or its conversation is no longer available to you.
+          </p>
+        }
+
+        <div class="flex flex-wrap items-end justify-between gap-3 border-t border-base-200 pt-3">
+          <label class="flex flex-col gap-1 text-xs max-w-full">
+            <span>Move to collection</span>
+            <select class="select select-sm max-w-full" (change)="move(bookmark, $event)">
+              @for (name of bookmarks.collections(); track name) {
+                <option [value]="name" [selected]="bookmark.collection === name">{{ name }}</option>
+              }
+            </select>
+          </label>
+          <button type="button" class="btn btn-ghost btn-sm text-error" (click)="remove(bookmark)">
+            Remove bookmark
+          </button>
+        </div>
+      </article>
+    }
+  </section>
+</div>
